@@ -1,0 +1,55 @@
+# ebill.app.toml: how your app installs and runs inside eBillAddress.
+# Check it with `ebill app validate`. Contract: https://github.com/openbtps/ebill-dev-kit/blob/main/CONTRACT.md
+
+[app]
+# Issued when you register the app. Replace this placeholder with yours.
+client_id = "app_000000000000000000000000"
+# Your app's permanent name in URLs: 3 to 50 lowercase letters, digits or hyphens.
+handle = "{{handle}}"
+# "integration" connects eBill to another service; "template" is a ready-made document layout.
+kind = "integration"
+# The version you deploy next: x.y.z, no leading zeros, no pre-release part.
+version = "1.0.0"
+
+[auth]
+# Where eBill sends the user back with ?code=...&state=... after they approve the install.
+# https only, 1 to 5 URLs. The starter server.ts listens on /auth/callback.
+redirect_urls = ["https://example.com/auth/callback"]
+
+[access]
+# Ask for the fewest scopes you need. The user sees each one's label when approving.
+#   drafts:write             Create and change drafts
+#   documents:send           Send documents in your name
+#   documents:read           See documents you send and what happened to them
+#   documents:received:read  See documents you receive
+#   files:read               Download the files on your documents
+#   contacts:read            See your contacts
+#   payments:read            See payments on your invoices
+#   payments:write           Record payments and answer them in your name
+scopes = ["documents:read"]
+
+[webhooks]
+# The payload version your code expects.
+api_version = "2026-12"
+# eBill POSTs events here, signed with your webhook secret. https only.
+url = "https://example.com/webhooks"
+# Each topic needs its scope above: document.sent, document.delivered, document.failed (documents:read);
+# document.received (documents:received:read); payment.proposed, payment.accepted, payment.rejected (payments:read);
+# app.installed, app.uninstalled, app.settings.updated (no scope).
+topics = ["document.delivered", "app.uninstalled"]
+
+# Settings the organisation fills in when it installs your app. Read them with client.getSettings().
+# Field types: text, number, boolean, select (needs options), date ("YYYY-MM-DD"), email, url.
+[[settings.sections]]
+title = "Invoicing"
+fields = [
+  { key = "terms_days", type = "number", label = "Payment terms (days)", default = 14, min = 0, max = 120 },
+]
+
+[sync]
+# Browser sync is not documented yet. Keep this false.
+browser = false
+
+[pricing]
+# "free" or "one_time".
+model = "free"

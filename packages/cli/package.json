@@ -1,0 +1,54 @@
+{
+  "name": "@ebilladdress/cli",
+  "version": "0.1.0",
+  "description": "The ebill command: create, check and ship apps for the eBillAddress Marketplace.",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openbtps/ebill-dev-kit.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/openbtps/ebill-dev-kit/tree/main/packages/cli#readme",
+  "bugs": "https://github.com/openbtps/ebill-dev-kit/issues",
+  "keywords": [
+    "ebilladdress",
+    "ebill",
+    "marketplace",
+    "cli"
+  ],
+  "engines": {
+    "node": ">=22.12"
+  },
+  "bin": {
+    "ebill": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "templates",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --conditions=@ebilladdress/source --test \"src/**/*.test.ts\"",
+    "prepack": "pnpm run build"
+  },
+  "dependencies": {
+    "@ebilladdress/app-sdk": "workspace:^",
+    "commander": "^15.0.0",
+    "smol-toml": "^1.9.1",
+    "zod": "^4.6.7"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
