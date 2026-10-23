@@ -38,7 +38,7 @@ organisation's owners and admins can approve. The CLI then keeps a developer tok
 `$XDG_CONFIG_HOME/ebill`), readable by you alone. You can revoke it in eBill at any time.
 
 In CI, set `EBILL_TOKEN` to a developer token instead. It takes the place of the saved sign-in. `EBILL_API_URL` points the CLI at another eBill
-(default `https://api.ebilladdress.com`). A saved sign-in is used only with the API it was made for.
+(default `https://api.ebilladdress.com`). It must be https, except for `localhost`. A saved sign-in is used only with the API it was made for.
 
 ## Validation
 

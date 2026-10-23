@@ -88,21 +88,29 @@ Pass the body exactly as received, before parsing it:
 import { WEBHOOK_HEADERS, WebhookVerificationError, verifyWebhook } from "@ebilladdress/app-sdk";
 
 try {
-  const event = verifyWebhook({ rawBody, signatureHeader: req.headers[WEBHOOK_HEADERS.signature], secret: process.env.EBILL_WEBHOOK_SECRET! });
+  const event = verifyWebhook({
+    rawBody,
+    signatureHeader: req.headers[WEBHOOK_HEADERS.signature],
+    deliveryHeader: req.headers[WEBHOOK_HEADERS.delivery],
+    secret: process.env.EBILL_WEBHOOK_SECRET ?? "",
+  });
   if (event.topic === "document.delivered") {
     console.log(event.data.documentId); // typed by topic
   }
 } catch (error) {
   if (error instanceof WebhookVerificationError) {
-    // error.reason: malformed_header | timestamp_out_of_tolerance | signature_mismatch | invalid_body | unknown_topic
+    // error.reason: malformed_header | timestamp_out_of_tolerance | signature_mismatch | invalid_body | unknown_topic | delivery_mismatch
     // answer 400
   }
+  throw error; // a TypeError: the secret is missing or too short, a mistake in your configuration
 }
 ```
 
 - Signatures are compared in constant time. Timestamps more than `toleranceSeconds` (default 300) from now are refused.
 - While you rotate your secret, pass both: `secret: [current, next]`. Headers with several `v1` values are accepted if any matches.
-- eBill retries a delivery with the same `Ebill-Delivery` header. Record the ids you have handled and skip repeats.
+- A secret that is missing or shorter than 32 characters throws a `TypeError` rather than verifying anything.
+- eBill retries a delivery with the same event `id`. Record the ids you have handled and skip repeats by `event.id`, which is signed, never by
+  the `Ebill-Delivery` header alone, which is not. Pass the header as `deliveryHeader` and a delivery whose header is not its `id` is refused.
 - `data` is typed per topic but not checked field by field.
 - After `app.uninstalled`, delete the data you synced for that organisation within 30 days.
 

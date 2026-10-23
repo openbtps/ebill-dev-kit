@@ -5,7 +5,7 @@ import { WebhookVerificationError } from "./errors.ts";
 /** Header names, lower-cased as Node's `IncomingMessage.headers` gives them. */
 export const WEBHOOK_HEADERS = {
   event: "ebill-event",
-  /** The same on every retry of one delivery: use it to ignore repeats. */
+  /** The same on every retry of one delivery, and equal to the event's `id`. It is not signed: ignore repeats by `event.id`. */
   delivery: "ebill-delivery",
   signature: "ebill-signature",
 } as const;
@@ -78,6 +78,8 @@ export interface VerifyWebhookOptions {
   signatureHeader: string | readonly string[] | null | undefined;
   /** Your webhook secret. Pass several while you rotate it. */
   secret: string | readonly string[];
+  /** The `Ebill-Delivery` header, when you have it: refused unless it is the signed event's `id`. */
+  deliveryHeader?: string | readonly string[] | null | undefined;
   toleranceSeconds?: number;
   now?: Date;
 }
@@ -143,18 +145,24 @@ function parseEvent(rawBody: string | Uint8Array): WebhookEvent {
   return body as unknown as WebhookEvent;
 }
 
+/** The shortest secret taken: eBill's are 48 characters. Shorter is a missing or mistyped one, which anyone could sign with. */
+export const MIN_WEBHOOK_SECRET_LENGTH = 32;
+
 /**
  * Check that a webhook came from eBill and is recent, then return its event.
- * Throws `WebhookVerificationError` otherwise. Deduplicate on the `Ebill-Delivery` header: eBill retries with the same id.
+ * Throws `WebhookVerificationError` otherwise. Ignore repeats by the event's `id`, which is signed: eBill retries with the
+ * same one. Throws a `TypeError` for a secret that is missing or too short, a mistake in your configuration.
  */
 export function verifyWebhook(options: VerifyWebhookOptions): WebhookEvent {
+  const secrets = typeof options.secret === "string" ? [options.secret] : options.secret;
+  if (secrets.length === 0 || secrets.some((secret) => typeof secret !== "string" || secret.length < MIN_WEBHOOK_SECRET_LENGTH))
+    throw new TypeError(`A webhook secret is missing or shorter than ${String(MIN_WEBHOOK_SECRET_LENGTH)} characters. Check your app's configuration.`);
   const { timestamp, signatures } = parseSignatureHeader(options.signatureHeader);
   const tolerance = options.toleranceSeconds ?? DEFAULT_WEBHOOK_TOLERANCE_SECONDS;
   const now = Math.floor((options.now ?? new Date()).getTime() / 1000);
   if (Math.abs(now - timestamp) > tolerance) {
     throw new WebhookVerificationError("timestamp_out_of_tolerance", `Webhook timestamp is more than ${String(tolerance)} seconds from now.`);
   }
-  const secrets = typeof options.secret === "string" ? [options.secret] : options.secret;
   let matched = false;
   for (const secret of secrets) {
     const expected = hmac(secret, timestamp, options.rawBody);
@@ -163,7 +171,11 @@ export function verifyWebhook(options: VerifyWebhookOptions): WebhookEvent {
     }
   }
   if (!matched) throw new WebhookVerificationError("signature_mismatch", "Webhook signature does not match.");
-  return parseEvent(options.rawBody);
+  const event = parseEvent(options.rawBody);
+  const delivery = typeof options.deliveryHeader === "string" ? options.deliveryHeader : options.deliveryHeader?.join(",");
+  if (delivery !== undefined && delivery !== event.id)
+    throw new WebhookVerificationError("delivery_mismatch", "Ebill-Delivery header is not the signed event's id.");
+  return event;
 }
 
 export interface SignWebhookOptions {

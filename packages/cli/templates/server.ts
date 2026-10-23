@@ -30,9 +30,9 @@ const config = {
 
 // In memory only so this file runs as is. Use a database: tokens encrypted at rest, keyed by installation.
 const tokens = new Map<string, TokenSet>();
-// eBill retries a delivery with the same Ebill-Delivery id. Remember the ids you have handled, in a database
+// eBill retries a delivery with the same event id, which is signed. Remember the ids you have handled, in a database
 // with a unique constraint, so a retry is not processed twice.
-const handledDeliveries = new Set<string>();
+const handledEvents = new Set<string>();
 
 function readBody(req: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -78,7 +78,12 @@ async function handleWebhook(req: IncomingMessage, res: ServerResponse): Promise
   const rawBody = await readBody(req);
   let event: WebhookEvent;
   try {
-    event = verifyWebhook({ rawBody, signatureHeader: req.headers[WEBHOOK_HEADERS.signature], secret: config.webhookSecret });
+    event = verifyWebhook({
+      rawBody,
+      signatureHeader: req.headers[WEBHOOK_HEADERS.signature],
+      deliveryHeader: req.headers[WEBHOOK_HEADERS.delivery],
+      secret: config.webhookSecret,
+    });
   } catch (error) {
     if (error instanceof WebhookVerificationError) {
       send(res, 400, error.reason);
@@ -87,9 +92,7 @@ async function handleWebhook(req: IncomingMessage, res: ServerResponse): Promise
     throw error;
   }
 
-  const deliveryId = req.headers[WEBHOOK_HEADERS.delivery];
-  const delivery = typeof deliveryId === "string" ? deliveryId : event.id;
-  if (handledDeliveries.has(delivery)) {
+  if (handledEvents.has(event.id)) {
     send(res, 200, "Already handled.");
     return;
   }
@@ -109,7 +112,7 @@ async function handleWebhook(req: IncomingMessage, res: ServerResponse): Promise
       console.log(`Unhandled topic ${event.topic}`);
   }
 
-  handledDeliveries.add(delivery);
+  handledEvents.add(event.id);
   // Answer quickly. Do slow work in a queue, after responding.
   send(res, 200, "OK");
 }

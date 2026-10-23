@@ -1,7 +1,7 @@
 // The commands that talk to eBill: signing in (the OAuth 2.0 device grant, RFC 8628), and pushing, listing and
 // releasing the app in a folder, found in the organisation's apps by the client id in its ebill.app.toml.
 import { hostname } from "node:os";
-import { apiUrlOf, forgetCredentials, readCredentials, saveCredentials, credentialsFile, type Place } from "./credentials.ts";
+import { ApiUrlError, apiUrlOf, forgetCredentials, readCredentials, saveCredentials, credentialsFile, type Place } from "./credentials.ts";
 import { DeveloperApi, DeveloperApiError, type AppVersion, type CheckFailure, type DeveloperApp } from "./developer-api.ts";
 import { APP_FILE, loadAppFiles } from "./manifest.ts";
 
@@ -16,14 +16,26 @@ export interface Context {
   fail: () => void;
 }
 
+/** Text from eBill, printable: no control characters, so an answer can never drive the terminal. */
+export const isControl = (character: string): boolean => {
+  const code = character.codePointAt(0) ?? 0;
+  return code < 0x20 || (code >= 0x7f && code <= 0x9f);
+};
+export const plain = (text: string): string => Array.from(text, (character) => (isControl(character) ? " " : character)).join("");
+
 export function formatCheckFailures(failures: readonly CheckFailure[]): string {
-  return failures.map((failure) => `  ${failure.path}  (${failure.check})\n    ${failure.reason}\n`).join("");
+  return failures.map((failure) => `  ${plain(failure.path)}  (${plain(failure.check)})\n    ${plain(failure.reason)}\n`).join("");
 }
 
 function told(context: Context, error: unknown): void {
+  if (error instanceof ApiUrlError) {
+    context.stderr(`${error.message}\n`);
+    context.fail();
+    return;
+  }
   if (!(error instanceof DeveloperApiError)) throw error;
-  const reference = error.reference ? `, reference ${error.reference}` : "";
-  context.stderr(`${error.message} (${error.error}${reference})\n`);
+  const reference = error.reference ? `, reference ${plain(error.reference)}` : "";
+  context.stderr(`${plain(error.message)} (${plain(error.error)}${reference})\n`);
   if (error.status === 401) context.stderr('Run "ebill login" to sign in again.\n');
   context.fail();
 }
@@ -38,7 +50,13 @@ async function talking(context: Context, work: () => Promise<void>): Promise<voi
 }
 
 async function signedIn(context: Context): Promise<DeveloperApi | undefined> {
-  const credentials = await readCredentials(context.place);
+  let credentials: Awaited<ReturnType<typeof readCredentials>>;
+  try {
+    credentials = await readCredentials(context.place);
+  } catch (error) {
+    told(context, error);
+    return undefined;
+  }
   if (!credentials) {
     context.stderr('Not signed in to eBill. Run "ebill login" (or set EBILL_TOKEN for CI).\n');
     context.fail();
@@ -48,12 +66,12 @@ async function signedIn(context: Context): Promise<DeveloperApi | undefined> {
 }
 
 export async function login(context: Context): Promise<void> {
-  const api = new DeveloperApi(apiUrlOf(context.place), context.fetch);
   await talking(context, async () => {
+    const api = new DeveloperApi(apiUrlOf(context.place), context.fetch);
     const started = await api.startLogin();
     context.stdout(
-      `To sign in, open this page in a browser where you're signed in to eBill:\n\n  ${started.verificationUriComplete}\n\n` +
-        `Check it shows this code, then approve it: ${started.userCode}\n\nWaiting for you to approve it...\n`,
+      `To sign in, open this page in a browser where you're signed in to eBill:\n\n  ${plain(started.verificationUriComplete)}\n\n` +
+        `Check it shows this code, then approve it: ${plain(started.userCode)}\n\nWaiting for you to approve it...\n`,
     );
     let interval = started.interval;
     const ends = Date.now() + started.expiresIn * 1000;
@@ -61,7 +79,19 @@ export async function login(context: Context): Promise<void> {
       await context.sleep(interval * 1000);
       const polled = await api.poll(started.deviceCode, `ebill CLI on ${hostname()}`);
       if ("token" in polled) {
-        const file = await saveCredentials(context.place, { apiUrl: apiUrlOf(context.place), token: polled.token });
+        let file: string;
+        try {
+          file = await saveCredentials(context.place, { apiUrl: apiUrlOf(context.place), token: polled.token });
+        } catch (error) {
+          const code = (error as { code?: unknown }).code;
+          const why = typeof code === "string" ? ` (${code})` : "";
+          context.stderr(
+            `eBill signed the CLI in, but the sign-in could not be saved in ${credentialsFile(context.place)}${why}. ` +
+              'Fix that folder\'s permissions and run "ebill login" again; revoke the unsaved token under Developer tokens in eBill.\n',
+          );
+          context.fail();
+          return;
+        }
         context.stdout(`Signed in. Your sign-in is saved in ${file}, readable by you alone.\n`);
         return;
       }
@@ -71,7 +101,7 @@ export async function login(context: Context): Promise<void> {
           access_denied: "The sign-in was refused in eBill.",
           expired_token: 'The code expired before it was approved. Run "ebill login" again.',
         };
-        context.stderr(`${why[polled.error] ?? `eBill did not sign the CLI in (${polled.error}).`}\n`);
+        context.stderr(`${why[polled.error] ?? `eBill did not sign the CLI in (${plain(polled.error)}).`}\n`);
         context.fail();
         return;
       }
@@ -101,7 +131,15 @@ async function appIn(context: Context, api: DeveloperApi, dir: string): Promise<
     context.fail();
     return undefined;
   }
-  return { app, ...files };
+  // Everything eBill said about the app, printable, once: no command prints a field raw.
+  const versions = app.versions.map((one) => ({
+    ...one,
+    version: plain(one.version),
+    state: plain(one.state),
+    submittedAt: plain(one.submittedAt),
+    reviewNote: one.reviewNote === null ? null : plain(one.reviewNote),
+  }));
+  return { app: { ...app, handle: plain(app.handle), kind: plain(app.kind), versions }, ...files };
 }
 
 export async function deploy(context: Context, dir: string, version: string | undefined): Promise<void> {
@@ -136,7 +174,7 @@ const STATES: Record<string, string> = {
 };
 
 const line = (version: AppVersion): string =>
-  `  ${version.version.padEnd(12)} ${(STATES[version.state] ?? version.state).padEnd(24)} ${version.submittedAt.slice(0, 10)}${version.reviewNote ? `\n    ${version.reviewNote}` : ""}\n`;
+  `  ${plain(version.version).padEnd(12)} ${plain(STATES[version.state] ?? version.state).padEnd(24)} ${plain(version.submittedAt.slice(0, 10))}${version.reviewNote ? `\n    ${plain(version.reviewNote)}` : ""}\n`;
 
 export async function versions(context: Context, dir: string): Promise<void> {
   const api = await signedIn(context);
