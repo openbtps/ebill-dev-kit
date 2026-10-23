@@ -2,6 +2,7 @@
   "name": "@ebilladdress/app-sdk",
   "version": "0.1.0",
   "description": "Helpers for apps on the eBillAddress Marketplace: OAuth install, API client, webhook verification.",
+  "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
@@ -33,7 +34,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "sideEffects": false,
   "scripts": {

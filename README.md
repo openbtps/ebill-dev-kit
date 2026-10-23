@@ -36,4 +36,5 @@ Tests use `node:test` and run straight from the TypeScript sources.
 
 ## Licence
 
-To be announced.
+[MIT](LICENSE). The licence covers this code only: it grants no right to the eBillAddress name or marks, and using the
+eBill API is under its own terms.
