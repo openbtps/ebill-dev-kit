@@ -98,11 +98,14 @@ eBill `POST`s events to your `[webhooks] url`:
 
 Headers:
 
-| Header            | Value                                                                                                |
-| ----------------- | ---------------------------------------------------------------------------------------------------- |
-| `Ebill-Event`     | the topic                                                                                            |
-| `Ebill-Delivery`  | a UUID, the same on every retry of this delivery. Remember the ids you have handled and skip repeats |
-| `Ebill-Signature` | `t=<unix seconds>,v1=<hex>`                                                                          |
+| Header            | Value                                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------------------- |
+| `Ebill-Event`     | the topic                                                                                         |
+| `Ebill-Delivery`  | a UUID, the same on every retry, and equal to the body's `id`. It is not covered by the signature |
+| `Ebill-Signature` | `t=<unix seconds>,v1=<hex>`                                                                       |
+
+Skip repeats by the body's `id`, which is signed: remember the ids you have handled. Never by `Ebill-Delivery` alone: within the 300 seconds a
+captured delivery could be sent again with a new one.
 
 `v1` is HMAC-SHA256, keyed with your webhook secret, over the exact string `${t}.${rawBody}`, in lowercase hex. While a secret is being rotated the
 header carries one `v1` per secret; accept the delivery if any of them matches.

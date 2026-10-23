@@ -1,4 +1,5 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
+import { chmod, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -26,10 +27,27 @@ function folder(place: Place): string {
 
 export const credentialsFile = (place: Place): string => join(folder(place), "credentials.json");
 
-/** The API to talk to: EBILL_API_URL, then the default. */
+/** An EBILL_API_URL the CLI will not send a sign-in to. */
+export class ApiUrlError extends Error {
+  override readonly name = "ApiUrlError";
+}
+
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/** The API to talk to: EBILL_API_URL, then the default. Https only, but for this computer: a token never crosses a network in the clear. */
 export function apiUrlOf(place: Place): string {
-  const url = place.env.EBILL_API_URL;
-  return (url && url !== "" ? url : DEFAULT_API_URL).replace(/\/+$/, "");
+  const given = place.env.EBILL_API_URL;
+  const url = (given && given !== "" ? given : DEFAULT_API_URL).replace(/\/+$/, "");
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new ApiUrlError(`EBILL_API_URL "${url}" is not a URL.`);
+  }
+  const local = parsed.protocol === "http:" && LOCAL_HOSTS.has(parsed.hostname);
+  if (parsed.protocol !== "https:" && !local) throw new ApiUrlError(`EBILL_API_URL must be https (http only for localhost): "${url}" was not used.`);
+  if (parsed.username !== "" || parsed.password !== "") throw new ApiUrlError("EBILL_API_URL must not carry a user name or password.");
+  return url;
 }
 
 /**
@@ -50,11 +68,23 @@ export async function readCredentials(place: Place): Promise<Credentials | undef
   }
 }
 
-/** Saved readable by this user alone. */
+/**
+ * Saved readable by this user alone, whatever was there before: a mode only applies to a file as it is made, so the
+ * sign-in goes into a new file and replaces the old one, and the folder is closed to others too.
+ */
 export async function saveCredentials(place: Place, credentials: Credentials): Promise<string> {
+  const dir = folder(place);
   const file = credentialsFile(place);
-  await mkdir(folder(place), { recursive: true, mode: 0o700 });
-  await writeFile(file, `${JSON.stringify({ ...credentials, savedAt: new Date().toISOString() }, null, 2)}\n`, { mode: 0o600 });
+  await mkdir(dir, { recursive: true, mode: 0o700 });
+  await chmod(dir, 0o700);
+  const fresh = join(dir, `.credentials-${randomBytes(8).toString("hex")}.tmp`);
+  try {
+    await writeFile(fresh, `${JSON.stringify({ ...credentials, savedAt: new Date().toISOString() }, null, 2)}\n`, { mode: 0o600, flag: "wx" });
+    await rename(fresh, file);
+  } catch (error) {
+    await rm(fresh, { force: true });
+    throw error;
+  }
   return file;
 }
 

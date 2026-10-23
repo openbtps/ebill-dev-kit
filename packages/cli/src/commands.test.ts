@@ -1,11 +1,12 @@
 // The commands that talk to eBill, against a stand-in for its developer API (CONTRACT.md, "Developer API"): sign in
 // with the device grant, then deploy, list, release, roll back and show the app in a folder.
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, beforeEach, describe, test } from "node:test";
 import { EXIT, run } from "./cli.ts";
+import { isControl } from "./commands.ts";
 import { initApp } from "./init.ts";
 
 const CLIENT_ID = "app_abcdefghijklmnopqrstuvwx";
@@ -127,6 +128,26 @@ describe("ebill login", () => {
     assert.equal((await stat(file)).mode & 0o777, 0o600);
   });
 
+  test("a sign-in saved over a file others could read leaves it readable by this user alone", async () => {
+    const file = join(root, ".config", "credentials.json");
+    await writeFile(file, "{}", { mode: 0o644 });
+    await chmod(file, 0o644);
+    await chmod(join(root, ".config"), 0o755);
+    assert.equal((await ebill({}, "login")).code, EXIT.ok);
+    assert.equal((await stat(file)).mode & 0o777, 0o600);
+    assert.equal((await stat(join(root, ".config"))).mode & 0o777, 0o700);
+  });
+
+  test("a token is never sent in the clear: http is refused but for this computer", async () => {
+    const refused = await ebill({ EBILL_API_URL: "http://api.example.com" }, "login");
+    assert.equal(refused.code, EXIT.failed);
+    assert.match(refused.err, /must be https/);
+    assert.deepEqual(ebillServer.seen, [], "nothing was sent");
+    assert.match((await ebill({ EBILL_API_URL: "http://api.example.com", EBILL_TOKEN: TOKEN }, "app", "versions", "--dir", "acme")).err, /must be https/);
+    assert.deepEqual(ebillServer.seen, []);
+    assert.equal((await ebill({ EBILL_API_URL: "http://localhost:4000" }, "login")).code, EXIT.ok);
+  });
+
   test("a refused sign-in is said, and nothing is kept; logout forgets it", async () => {
     await ebill({}, "logout");
     ebillServer.refuse = true;
@@ -172,6 +193,15 @@ describe("the app's versions", () => {
     assert.equal((await ebill({ EBILL_TOKEN: TOKEN }, "app", "rollback", "1.0.0", "--dir", "acme")).code, EXIT.failed);
     const unknown = await ebill({ EBILL_TOKEN: TOKEN }, "app", "release", "7.0.0", "--dir", "acme");
     assert.match(unknown.err, /has no version 7\.0\.0/);
+  });
+
+  test("what eBill says is printed without control characters: an answer cannot drive the terminal", async () => {
+    ebillServer.versions = [
+      { id: "v-1.0.0", version: "1.0.0", state: "changes_requested", submittedAt: "2027-01-01T00:00:00Z", reviewNote: "fix\u001b]0;owned\u0007 this" },
+    ];
+    const shown = await ebill({ EBILL_TOKEN: TOKEN }, "app", "versions", "--dir", "acme");
+    assert.ok(!Array.from(shown.out).some((character) => character !== "\n" && isControl(character)));
+    assert.ok(shown.out.includes("fix ]0;owned  this"));
   });
 
   test("a token eBill does not take is told, with its reference, and how to sign in again", async () => {

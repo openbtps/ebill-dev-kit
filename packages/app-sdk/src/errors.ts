@@ -33,7 +33,8 @@ export class EbillNetworkError extends Error {
   override readonly name = "EbillNetworkError";
 }
 
-export type WebhookVerificationFailure = "malformed_header" | "timestamp_out_of_tolerance" | "signature_mismatch" | "invalid_body" | "unknown_topic";
+export type WebhookVerificationFailure =
+  "malformed_header" | "timestamp_out_of_tolerance" | "signature_mismatch" | "invalid_body" | "unknown_topic" | "delivery_mismatch";
 
 /** A webhook that failed verification. Answer it with a 400 and do not act on it. */
 export class WebhookVerificationError extends Error {

@@ -4,7 +4,8 @@ import { describe, test } from "node:test";
 import { WebhookVerificationError } from "./errors.ts";
 import { signWebhook, verifyWebhook } from "./webhooks.ts";
 
-const secret = "whsec_test_secret";
+const secret = `ebws_${"s".repeat(43)}`;
+const newSecret = `ebws_${"n".repeat(43)}`;
 const t = 1_800_000_000;
 const now = new Date(t * 1000);
 const event = {
@@ -68,8 +69,20 @@ describe("verifyWebhook", () => {
   });
 
   test("accepts any of several secrets held by the app", () => {
-    const header = `t=${String(t)},v1=${sig(rawBody, "new-secret")}`;
-    assert.equal(verifyWebhook({ rawBody, signatureHeader: header, secret: [secret, "new-secret"], now }).id, "evt_1");
+    const header = `t=${String(t)},v1=${sig(rawBody, newSecret)}`;
+    assert.equal(verifyWebhook({ rawBody, signatureHeader: header, secret: [secret, newSecret], now }).id, "evt_1");
+  });
+
+  test("refuses a missing or short secret, which anyone could sign with, before reading the request", () => {
+    for (const bad of ["", "short", [], [secret, ""]]) {
+      assert.throws(() => verifyWebhook({ rawBody, signatureHeader: signWebhook({ rawBody, secret: "", timestamp: t }), secret: bad, now }), TypeError);
+    }
+  });
+
+  test("an Ebill-Delivery header, when given, must be the signed event's id: a replay with a new one is refused", () => {
+    const header = signWebhook({ rawBody, secret, timestamp: t });
+    assert.equal(verifyWebhook({ rawBody, signatureHeader: header, deliveryHeader: "evt_1", secret, now }).id, "evt_1");
+    assert.throws(() => verifyWebhook({ rawBody, signatureHeader: header, deliveryHeader: "evt_2", secret, now }), rejects("delivery_mismatch"));
   });
 
   test("rejects malformed headers", () => {

@@ -36,8 +36,8 @@ must be reachable over https, so put the server behind a tunnel or a host with T
 
 - `GET /auth/callback`: eBill sends the user here after they approve the install. The server swaps the `code` for tokens with `exchangeCode` and
   keeps them per installation.
-- `POST /webhooks`: eBill posts events here. The server checks the signature with `verifyWebhook`, ignores deliveries it has already handled
-  (`Ebill-Delivery` header), and answers 200.
+- `POST /webhooks`: eBill posts events here. The server checks the signature with `verifyWebhook`, ignores events it has already handled (by
+  the signed event `id`), and answers 200.
 
 Before going live, replace the in-memory maps with a database, store tokens encrypted, and delete an organisation's synced data within 30 days of
 `app.uninstalled`.
