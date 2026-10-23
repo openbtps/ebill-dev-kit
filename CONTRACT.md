@@ -196,10 +196,77 @@ Unknown keys are refused, so a typo does not pass silently.
 Whether links open, whether images can be fetched, and image sizes need the network. eBill checks them when you deploy; `ebill app validate` says
 it skipped them.
 
+## Developer API
+
+What the CLI calls to sign in and to ship an app. It acts for an organisation, not for an installation. Refusals have the same
+`{ error, message, reference }` body as the rest of the API.
+
+### Signing in: OAuth 2.0 device authorization (RFC 8628)
+
+```http
+POST /developer/device/code
+```
+
+```json
+{
+  "device_code": "ebdc_...",
+  "user_code": "BCDF-GHJK",
+  "verification_uri": "https://app.ebilladdress.com/developer/device",
+  "verification_uri_complete": "https://app.ebilladdress.com/developer/device?code=BCDF-GHJK",
+  "expires_in": 600,
+  "interval": 5
+}
+```
+
+The person opens the page, signed in to eBill, and approves or refuses the code. Only the organisation's owners and admins may. Meanwhile, poll
+every `interval` seconds:
+
+```http
+POST /developer/device/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=urn:ietf:params:oauth:grant-type:device_code&device_code=ebdc_...&label=...
+```
+
+`label` (optional, up to 80 characters) names the token in eBill's list of developer tokens. Until approved, the answer is 400 with `error`:
+
+- `authorization_pending`: keep polling.
+- `slow_down`: add 5 seconds to the interval.
+- `access_denied`: the code was refused.
+- `expired_token`: the code expired; start again.
+
+Once approved:
+
+```json
+{ "access_token": "ebdt_...", "token_type": "Bearer", "expires_in": 7776000 }
+```
+
+A device code is traded for a token once. The token lasts 90 days and can be revoked in eBill. It acts only while the person who approved it is
+still an owner or admin of the organisation: after that it is refused with 403 `forbidden`.
+
+### Shipping an app
+
+Each call sends `Authorization: Bearer ebdt_...`. A missing, expired or revoked token is 401 `unauthorized`.
+
+| Call                                      | Body                    | Answer                                                             |
+| ----------------------------------------- | ----------------------- | ------------------------------------------------------------------ |
+| `GET /developer/v1/apps`                  |                         | `{ data: [{ id, handle, kind, clientId, delistedAt, versions }] }` |
+| `POST /developer/v1/apps/:id/versions`    | `{ manifest, listing }` | `{ state: "rejected" \| "review_pending", failures, version? }`    |
+| `POST /developer/v1/versions/:id/release` | `{}`                    | `{ version, moved, waiting }`                                      |
+
+- **versions:** each is `{ id, appId, version, state, submittedAt, reviewNote }`, newest first. `state` is one of `review_pending`,
+  `changes_requested`, `approved`, `released`, `superseded` or `retired`.
+- **push:** `manifest` and `listing` are `ebill.app.toml` and `listing.toml` parsed to JSON. eBill runs the same checks as the CLI, plus the
+  ones that need the network, and a version must be higher than the app's last. `failures` has the `{ check, path, reason }` shape that
+  `ebill app validate --json` prints. A rejected push stores nothing.
+- **release:** works on an `approved` version, or on a `superseded` one to roll back. Any other state is refused with 409 `not_releasable`.
+  `moved` counts the installations now on the version. `waiting` counts those left where they are because the version asks for scopes their
+  organisation has not granted.
+
 ## CLI exit codes
 
-| Code | Meaning                                                               |
-| ---- | --------------------------------------------------------------------- |
-| 0    | done                                                                  |
-| 1    | something to fix, or a mistake in the command                         |
-| 2    | the command needs the eBill developer API, which is not available yet |
+| Code | Meaning                                              |
+| ---- | ---------------------------------------------------- |
+| 0    | done                                                 |
+| 1    | something to fix, or a mistake in the command        |
+| 2    | the command needs something eBill does not offer yet |
