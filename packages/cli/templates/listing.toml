@@ -1,0 +1,29 @@
+# listing.toml: your app's page in the eBillAddress Marketplace.
+# `ebill app validate` checks lengths and formats here; eBill checks that links open and images load when you deploy.
+
+# 1 to 40 characters.
+name = "{{name}}"
+# One line, 1 to 80 characters.
+tagline = "Describe what your app does in one line"
+# One of: billing, accounting, payments, documents, productivity, communication, other.
+category = "billing"
+# Up to 10, each 1 to 30 characters.
+keywords = ["invoices"]
+# 1 to 4000 characters of markdown: headings, lists, links, bold and italic. No HTML, no images.
+description = """
+Tell organisations what your app does, what it needs access to, and why.
+"""
+# What changed in this version. Up to 2000 characters.
+release_notes = "First release."
+
+# Every URL must be https.
+icon_url = "https://example.com/icon.png"
+cover_url = "https://example.com/cover.png"
+# Up to 8.
+screenshot_urls = []
+
+support_url = "https://example.com/support"
+privacy_policy_url = "https://example.com/privacy"
+terms_url = "https://example.com/terms"
+# Shown as the app's developer, 1 to 80 characters.
+developer_name = "Your company"
