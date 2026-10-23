@@ -37,7 +37,7 @@ their arguments, print a message saying so, and exit with code 2.
   ebill.app.toml:app.kind  (allowed-value)
     must be one of: integration, template
   ebill.app.toml:webhooks.topics[0]  (topic-scope)
-    "payment.accepted" needs the "payments:read" scope in [access] scopes
+    "payment.answered" needs the "payments:read" scope in [access] scopes
 ```
 
 It exits with 1 when there is a problem and 0 when there is none. `--json` prints `{ ok, failures: [{ check, path, reason }], skipped }`.

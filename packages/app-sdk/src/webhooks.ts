@@ -21,21 +21,27 @@ export interface DocumentEventData {
   documentId: string;
   /** For example `invoice`, `receipt`, `payslip` or `letter`. */
   kind: string;
-  /** The receiver's address, on events about documents you send. */
-  to?: string;
-  /** The sender's address, on events about documents you receive. */
-  from?: string;
+  /** `outgoing` for a document the organisation sent, `incoming` for one it received. */
+  direction: "outgoing" | "incoming";
+  /** The sender's address. */
+  from: string;
+  /** The receiver's address. */
+  to: string;
   /** ISO 8601 time the thing happened. */
   at: string;
 }
 
+/**
+ * A payment event on an invoice. Thin on purpose: what an event says (amounts, an answer's decision) can be sealed,
+ * so read the payment for it: `GET /v1/documents/{documentId}/payment`.
+ */
 export interface PaymentEventData {
   documentId: string;
   eventId: string;
-  /** In the currency's smallest unit, for example cents. */
-  amountMinor: number;
-  /** ISO 4217 code, for example `AUD`. */
-  currency: string;
+  /** `paid`, `partially_paid`, `disputed`, `refund_requested`, `refund` or `response`. */
+  event: string;
+  /** `incoming` when the other party sent it, `outgoing` when the organisation did. */
+  direction: "outgoing" | "incoming";
   at: string;
 }
 
@@ -45,8 +51,8 @@ export interface WebhookEventDataMap {
   "document.failed": DocumentEventData;
   "document.received": DocumentEventData;
   "payment.proposed": PaymentEventData;
-  "payment.accepted": PaymentEventData;
-  "payment.rejected": PaymentEventData;
+  /** An answer to a proposal: a response, or a refund answering a request. */
+  "payment.answered": PaymentEventData;
   "app.installed": Record<string, never>;
   /** The app must delete the data it synced for this organisation within 30 days. */
   "app.uninstalled": Record<string, never>;
