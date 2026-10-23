@@ -69,7 +69,7 @@ describe("ebill.app.toml", () => {
     ["webhook api version", (d) => (section(d, "webhooks").api_version = "2020-01"), "webhook-api-version ebill.app.toml:webhooks.api_version"],
     ["unknown topic", (d) => (section(d, "webhooks").topics = ["document.exploded"]), "topic-known ebill.app.toml:webhooks.topics[0]"],
     ["duplicate topic", (d) => (section(d, "webhooks").topics = ["app.installed", "app.installed"]), "topic-duplicate ebill.app.toml:webhooks.topics[1]"],
-    ["topic without its scope", (d) => (section(d, "webhooks").topics = ["payment.accepted"]), "topic-scope ebill.app.toml:webhooks.topics[0]"],
+    ["topic without its scope", (d) => (section(d, "webhooks").topics = ["payment.answered"]), "topic-scope ebill.app.toml:webhooks.topics[0]"],
     ["pricing model", (d) => (section(d, "pricing").model = "subscription"), "allowed-value ebill.app.toml:pricing.model"],
     ["settings key format", (d) => (field(d).key = "Terms"), "settings-key-format ebill.app.toml:settings.sections[0].fields[0].key"],
     ["settings label length", (d) => (field(d).label = "x".repeat(61)), "length ebill.app.toml:settings.sections[0].fields[0].label"],

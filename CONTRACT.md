@@ -112,21 +112,27 @@ clock. Answer 2xx quickly; do slow work after responding. `verifyWebhook` in the
 
 ### Topics
 
-| Topic                  | Scope needed              | `data`                                               |
-| ---------------------- | ------------------------- | ---------------------------------------------------- |
-| `document.sent`        | `documents:read`          | `{ documentId, kind, to?, at }`                      |
-| `document.delivered`   | `documents:read`          | `{ documentId, kind, to?, at }`                      |
-| `document.failed`      | `documents:read`          | `{ documentId, kind, to?, at }`                      |
-| `document.received`    | `documents:received:read` | `{ documentId, kind, from?, at }`                    |
-| `payment.proposed`     | `payments:read`           | `{ documentId, eventId, amountMinor, currency, at }` |
-| `payment.accepted`     | `payments:read`           | `{ documentId, eventId, amountMinor, currency, at }` |
-| `payment.rejected`     | `payments:read`           | `{ documentId, eventId, amountMinor, currency, at }` |
-| `app.installed`        | none                      | `{}`                                                 |
-| `app.uninstalled`      | none                      | `{}`                                                 |
-| `app.settings.updated` | none                      | `{ values }`                                         |
+| Topic                  | Scope needed              | `data`                                          |
+| ---------------------- | ------------------------- | ----------------------------------------------- |
+| `document.sent`        | `documents:read`          | `{ documentId, kind, direction, from, to, at }` |
+| `document.delivered`   | `documents:read`          | `{ documentId, kind, direction, from, to, at }` |
+| `document.failed`      | `documents:read`          | `{ documentId, kind, direction, from, to, at }` |
+| `document.received`    | `documents:received:read` | `{ documentId, kind, direction, from, to, at }` |
+| `payment.proposed`     | `payments:read`           | `{ documentId, eventId, event, direction, at }` |
+| `payment.answered`     | `payments:read`           | `{ documentId, eventId, event, direction, at }` |
+| `app.installed`        | none                      | `{}`                                            |
+| `app.uninstalled`      | none                      | `{}`                                            |
+| `app.settings.updated` | none                      | `{ values }`                                    |
 
-`kind` is the document type, for example `invoice`. `amountMinor` is in the currency's smallest unit (cents); `currency` is an ISO 4217 code. `at`
-is when the thing happened.
+`kind` is the document type, for example `invoice`. `direction` is `outgoing` or `incoming`. `at` is when the thing happened.
+
+Payment events are thin on purpose: what an event says (an amount, an answer's decision) can be sealed, so a webhook says only which event it
+was. `event` is `paid`, `partially_paid`, `disputed`, `refund_requested`, `refund` or `response`; `payment.proposed` is a new proposal and
+`payment.answered` is an answer to one. Read the payment, with its status and events, at `GET /v1/documents/{documentId}/payment`.
+
+An app hears only the topics listed in `[webhooks] topics`, and only while it holds each one's scope. A delivery that is not answered 2xx is
+tried again, with backoff, for about a day. An app whose deliveries have all failed for 24 hours is suspended: its deliveries are dropped until
+you re-enable it in the developer portal.
 
 After `app.uninstalled`, you must delete the data you synced for that organisation within 30 days.
 
