@@ -1,0 +1,48 @@
+{
+  "name": "@ebilladdress/app-sdk",
+  "version": "0.1.0",
+  "description": "Helpers for apps on the eBillAddress Marketplace: OAuth install, API client, webhook verification.",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openbtps/ebill-dev-kit.git",
+    "directory": "packages/app-sdk"
+  },
+  "homepage": "https://github.com/openbtps/ebill-dev-kit/tree/main/packages/app-sdk#readme",
+  "bugs": "https://github.com/openbtps/ebill-dev-kit/issues",
+  "keywords": [
+    "ebilladdress",
+    "ebill",
+    "marketplace",
+    "sdk",
+    "webhooks",
+    "oauth"
+  ],
+  "engines": {
+    "node": ">=22.12"
+  },
+  "exports": {
+    ".": {
+      "@ebilladdress/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test \"src/**/*.test.ts\"",
+    "prepack": "pnpm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
