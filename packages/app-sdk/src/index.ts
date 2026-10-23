@@ -5,13 +5,21 @@ export { exchangeCode, refreshToken, type ExchangeCodeOptions, type OAuthCredent
 export {
   EbillClient,
   type AccessTokenSource,
+  type Contact,
+  type Document,
+  type DocumentDirection,
+  type DocumentFile,
+  type DraftRequest,
   type EbillClientOptions,
   type HttpMethod,
   type Installation,
   type InstallationSettings,
+  type ListOptions,
   type Page,
+  type Payment,
   type RequestOptions,
 } from "./client.ts";
+export type { components, paths } from "./api-types.ts";
 export {
   DEFAULT_WEBHOOK_TOLERANCE_SECONDS,
   WEBHOOK_API_VERSIONS,
