@@ -1,0 +1,2586 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "eBillAddress public API",
+    "version": "1.0.0",
+    "description": "What an installed Marketplace app may do for the organisation that installed it. Every call carries the app's access token; each route needs the scope named in x-ebill-scope, granted at install."
+  },
+  "servers": [
+    {
+      "url": "https://api.ebilladdress.com"
+    }
+  ],
+  "security": [
+    {
+      "bearer": []
+    }
+  ],
+  "x-ebill-scopes": [
+    {
+      "scope": "drafts:write",
+      "label": "Create and change drafts"
+    },
+    {
+      "scope": "documents:send",
+      "label": "Send documents in your name"
+    },
+    {
+      "scope": "documents:read",
+      "label": "See documents you send and what happened to them"
+    },
+    {
+      "scope": "documents:received:read",
+      "label": "See documents you receive"
+    },
+    {
+      "scope": "files:read",
+      "label": "Download the files on your documents"
+    },
+    {
+      "scope": "contacts:read",
+      "label": "See your contacts"
+    },
+    {
+      "scope": "payments:read",
+      "label": "See payments on your invoices"
+    },
+    {
+      "scope": "payments:write",
+      "label": "Record payments and answer them in your name"
+    }
+  ],
+  "x-ebill-webhook-topics": [
+    {
+      "topic": "document.sent",
+      "scope": "documents:read"
+    },
+    {
+      "topic": "document.delivered",
+      "scope": "documents:read"
+    },
+    {
+      "topic": "document.failed",
+      "scope": "documents:read"
+    },
+    {
+      "topic": "document.received",
+      "scope": "documents:received:read"
+    },
+    {
+      "topic": "payment.proposed",
+      "scope": "payments:read"
+    },
+    {
+      "topic": "payment.answered",
+      "scope": "payments:read"
+    },
+    {
+      "topic": "app.installed",
+      "scope": null
+    },
+    {
+      "topic": "app.uninstalled",
+      "scope": null
+    },
+    {
+      "topic": "app.settings.updated",
+      "scope": null
+    }
+  ],
+  "paths": {
+    "/v1/installation": {
+      "get": {
+        "summary": "The installation this token was issued for.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Installation"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/installation/settings": {
+      "get": {
+        "summary": "The values the organisation saved on this app's settings page.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Settings"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/documents": {
+      "get": {
+        "summary": "The organisation's documents of one direction, newest first. Outgoing needs documents:read; incoming, documents:received:read.",
+        "parameters": [
+          {
+            "name": "direction",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "outgoing",
+                "incoming"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "The `next` of the previous page."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/documents/{id}": {
+      "get": {
+        "summary": "One document. Not found unless the app may read documents of its direction.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Document"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/documents/{id}/files/{position}": {
+      "get": {
+        "summary": "A file on a document, by its position: always a download.",
+        "x-ebill-scope": "files:read",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "position",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 99
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/documents/{id}/payment": {
+      "get": {
+        "summary": "An invoice's payment, and the payment events it is made of.",
+        "x-ebill-scope": "payments:read",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Payment"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/drafts": {
+      "post": {
+        "summary": "A new draft of any kind, from one of the organisation's own addresses.",
+        "x-ebill-scope": "drafts:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Document"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/documents/{id}/send": {
+      "post": {
+        "summary": "Sign and send a draft. Needs an Idempotency-Key: a retried send is never sent twice.",
+        "x-ebill-scope": "documents:send",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Document"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/contacts": {
+      "get": {
+        "summary": "Who may send to whom: the organisation's trusts.",
+        "x-ebill-scope": "contacts:read",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/token": {
+      "post": {
+        "summary": "Trade an authorisation code, or a refresh token, with the app's client id and secret, for an access and a refresh token.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "The installation's access token (ebat_…), from the install flow."
+      }
+    },
+    "schemas": {
+      "Contact": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "outgoing",
+              "incoming"
+            ]
+          },
+          "ownAddress": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "inForce": {
+            "type": "boolean"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decidedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "ContactList": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Contact"
+            }
+          }
+        }
+      },
+      "CreateInvoiceDraftInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217. Every amount on the invoice is in it."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The notes: up to 2000 characters in up to 50 lines of plain text, formatted by marks in the text (rich-text.ts), never HTML."
+          },
+          "documentNumber": {
+            "type": "string",
+            "description": "Your invoice number, 1 to 100 characters."
+          },
+          "dueAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Not before issuedAt."
+          },
+          "encrypted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whether it travels encrypted: true when left out. Sent only the way the receiver allows (EBA_DOCUMENT_PRIVACY_NOT_ALLOWED otherwise)."
+          },
+          "fromAddress": {
+            "type": "string",
+            "description": "One of your own addresses. It cannot be changed afterwards: write a new draft to send from another."
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lineItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentLineItemInput"
+            },
+            "description": "Up to 100. A draft may have none; an invoice that is sent has at least one."
+          },
+          "title": {
+            "type": "string",
+            "description": "1 to 200 characters."
+          },
+          "toAddress": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "currency",
+          "documentNumber",
+          "fromAddress",
+          "issuedAt",
+          "lineItems",
+          "title",
+          "toAddress"
+        ]
+      },
+      "CreateInvoiceDraftInputRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "invoice"
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217. Every amount on the invoice is in it."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The notes: up to 2000 characters in up to 50 lines of plain text, formatted by marks in the text (rich-text.ts), never HTML."
+          },
+          "documentNumber": {
+            "type": "string",
+            "description": "Your invoice number, 1 to 100 characters."
+          },
+          "dueAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Not before issuedAt."
+          },
+          "encrypted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whether it travels encrypted: true when left out. Sent only the way the receiver allows (EBA_DOCUMENT_PRIVACY_NOT_ALLOWED otherwise)."
+          },
+          "fromAddress": {
+            "type": "string",
+            "description": "One of your own addresses. It cannot be changed afterwards: write a new draft to send from another."
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lineItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentLineItemInput"
+            },
+            "description": "Up to 100. A draft may have none; an invoice that is sent has at least one."
+          },
+          "title": {
+            "type": "string",
+            "description": "1 to 200 characters."
+          },
+          "toAddress": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "currency",
+          "documentNumber",
+          "fromAddress",
+          "issuedAt",
+          "lineItems",
+          "title",
+          "toAddress"
+        ]
+      },
+      "CreateLetterDraftInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "Up to 100000 characters of plain text, in paragraphs: each line cleaned, one empty line kept between paragraphs, and a line's indent kept. MARKDOWN is rendered, never any HTML in it."
+          },
+          "documentNumber": {
+            "type": "string",
+            "description": "Your number for it, 1 to 100 characters."
+          },
+          "encrypted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whether it travels encrypted: true when left out on a new draft, and as it was when left out on a change. Sent only the way the receiver allows (EBA_DOCUMENT_PRIVACY_NOT_ALLOWED otherwise)."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "MARKDOWN",
+              "TEXT"
+            ]
+          },
+          "fromAddress": {
+            "type": "string",
+            "description": "One of your own addresses. It cannot be changed afterwards."
+          },
+          "issuedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When it is dated. Left out: when it is first saved, and as it was on a change."
+          },
+          "title": {
+            "type": "string",
+            "description": "1 to 200 characters."
+          },
+          "toAddress": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "content",
+          "documentNumber",
+          "format",
+          "fromAddress",
+          "title",
+          "toAddress"
+        ],
+        "description": "Start a letter. A letter has no amount."
+      },
+      "CreateLetterDraftInputRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "letter"
+          },
+          "content": {
+            "type": "string",
+            "description": "Up to 100000 characters of plain text, in paragraphs: each line cleaned, one empty line kept between paragraphs, and a line's indent kept. MARKDOWN is rendered, never any HTML in it."
+          },
+          "documentNumber": {
+            "type": "string",
+            "description": "Your number for it, 1 to 100 characters."
+          },
+          "encrypted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whether it travels encrypted: true when left out on a new draft, and as it was when left out on a change. Sent only the way the receiver allows (EBA_DOCUMENT_PRIVACY_NOT_ALLOWED otherwise)."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "MARKDOWN",
+              "TEXT"
+            ]
+          },
+          "fromAddress": {
+            "type": "string",
+            "description": "One of your own addresses. It cannot be changed afterwards."
+          },
+          "issuedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When it is dated. Left out: when it is first saved, and as it was on a change."
+          },
+          "title": {
+            "type": "string",
+            "description": "1 to 200 characters."
+          },
+          "toAddress": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "content",
+          "documentNumber",
+          "format",
+          "fromAddress",
+          "title",
+          "toAddress"
+        ]
+      },
+      "CreatePayslipDraftInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contributions": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PayslipContributionInput"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217. Every amount on the payslip is in it."
+          },
+          "deductions": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PayslipDeductionInput"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "documentNumber": {
+            "type": "string",
+            "description": "Your number for it, 1 to 100 characters."
+          },
+          "earnings": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PayslipEarningInput"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Up to 100 of each list."
+          },
+          "employeeId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "employeeName": {
+            "type": "string"
+          },
+          "encrypted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whether it travels encrypted: true when left out on a new draft, and as it was when left out on a change. Sent only the way the receiver allows (EBA_DOCUMENT_PRIVACY_NOT_ALLOWED otherwise)."
+          },
+          "fromAddress": {
+            "type": "string",
+            "description": "One of your own addresses. It cannot be changed afterwards."
+          },
+          "grossMinor": {
+            "type": "integer",
+            "description": "An amount in minor units (cents)."
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "jurisdiction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ISO 3166-1 alpha-2."
+          },
+          "leave": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PayslipLeaveInput"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "netMinor": {
+            "type": "integer",
+            "description": "The net pay: the payslip's total. Not below 0."
+          },
+          "payBasis": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "HOURLY",
+                  "SALARIED"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payPeriodEnd": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payPeriodStart": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "With payPeriodEnd, or neither."
+          },
+          "payRate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PayslipPayRateInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "taxWithheldMinor": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "description": "An amount in minor units (cents)."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "1 to 200 characters."
+          },
+          "toAddress": {
+            "type": "string"
+          },
+          "yearToDate": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PayslipYearToDateInput"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "currency",
+          "documentNumber",
+          "employeeName",
+          "fromAddress",
+          "grossMinor",
+          "issuedAt",
+          "netMinor",
+          "title",
+          "toAddress"
+        ],
+        "description": "Start a payslip."
+      },
+      "CreatePayslipDraftInputRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "payslip"
+          },
+          "contributions": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PayslipContributionInput"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217. Every amount on the payslip is in it."
+          },
+          "deductions": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PayslipDeductionInput"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "documentNumber": {
+            "type": "string",
+            "description": "Your number for it, 1 to 100 characters."
+          },
+          "earnings": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PayslipEarningInput"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Up to 100 of each list."
+          },
+          "employeeId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "employeeName": {
+            "type": "string"
+          },
+          "encrypted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whether it travels encrypted: true when left out on a new draft, and as it was when left out on a change. Sent only the way the receiver allows (EBA_DOCUMENT_PRIVACY_NOT_ALLOWED otherwise)."
+          },
+          "fromAddress": {
+            "type": "string",
+            "description": "One of your own addresses. It cannot be changed afterwards."
+          },
+          "grossMinor": {
+            "type": "integer",
+            "description": "An amount in minor units (cents)."
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "jurisdiction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ISO 3166-1 alpha-2."
+          },
+          "leave": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PayslipLeaveInput"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "netMinor": {
+            "type": "integer",
+            "description": "The net pay: the payslip's total. Not below 0."
+          },
+          "payBasis": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "HOURLY",
+                  "SALARIED"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payPeriodEnd": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payPeriodStart": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "With payPeriodEnd, or neither."
+          },
+          "payRate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PayslipPayRateInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "taxWithheldMinor": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "description": "An amount in minor units (cents)."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "1 to 200 characters."
+          },
+          "toAddress": {
+            "type": "string"
+          },
+          "yearToDate": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PayslipYearToDateInput"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "currency",
+          "documentNumber",
+          "employeeName",
+          "fromAddress",
+          "grossMinor",
+          "issuedAt",
+          "netMinor",
+          "title",
+          "toAddress"
+        ]
+      },
+      "CreateReceiptDraftInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217. Every amount on the receipt is in it."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The notes, as an invoice's: up to 2000 characters in up to 50 lines of plain text."
+          },
+          "documentNumber": {
+            "type": "string",
+            "description": "Your number for it, 1 to 100 characters."
+          },
+          "encrypted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whether it travels encrypted: true when left out on a new draft, and as it was when left out on a change. Sent only the way the receiver allows (EBA_DOCUMENT_PRIVACY_NOT_ALLOWED otherwise)."
+          },
+          "fromAddress": {
+            "type": "string",
+            "description": "One of your own addresses. It cannot be changed afterwards."
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lineItems": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DocumentLineItemInput"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Up to 100, as an invoice's; none is a receipt for an amount alone."
+          },
+          "payment": {
+            "$ref": "#/components/schemas/ReceiptPaymentInput"
+          },
+          "receiptFor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Your invoice this receipt is for: one delivered to or received from the receipt's receiver. It is named on the receipt by its number, the address it was sent from and its signed artifact. EBA_DOCUMENT_RECEIPT_FOR_INVALID for any other. Left out on a change, the receipt names none."
+          },
+          "title": {
+            "type": "string",
+            "description": "1 to 200 characters."
+          },
+          "toAddress": {
+            "type": "string"
+          },
+          "totalMinor": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "description": "An amount in minor units (cents)."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "With no lines, the receipt's total: the payment's amount when left out. With lines, they are summed, and a total given must be that sum."
+          }
+        },
+        "required": [
+          "currency",
+          "documentNumber",
+          "fromAddress",
+          "issuedAt",
+          "payment",
+          "title",
+          "toAddress"
+        ],
+        "description": "Start a receipt."
+      },
+      "CreateReceiptDraftInputRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "receipt"
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217. Every amount on the receipt is in it."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The notes, as an invoice's: up to 2000 characters in up to 50 lines of plain text."
+          },
+          "documentNumber": {
+            "type": "string",
+            "description": "Your number for it, 1 to 100 characters."
+          },
+          "encrypted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whether it travels encrypted: true when left out on a new draft, and as it was when left out on a change. Sent only the way the receiver allows (EBA_DOCUMENT_PRIVACY_NOT_ALLOWED otherwise)."
+          },
+          "fromAddress": {
+            "type": "string",
+            "description": "One of your own addresses. It cannot be changed afterwards."
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lineItems": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DocumentLineItemInput"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Up to 100, as an invoice's; none is a receipt for an amount alone."
+          },
+          "payment": {
+            "$ref": "#/components/schemas/ReceiptPaymentInput"
+          },
+          "receiptFor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Your invoice this receipt is for: one delivered to or received from the receipt's receiver. It is named on the receipt by its number, the address it was sent from and its signed artifact. EBA_DOCUMENT_RECEIPT_FOR_INVALID for any other. Left out on a change, the receipt names none."
+          },
+          "title": {
+            "type": "string",
+            "description": "1 to 200 characters."
+          },
+          "toAddress": {
+            "type": "string"
+          },
+          "totalMinor": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "description": "An amount in minor units (cents)."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "With no lines, the receipt's total: the payment's amount when left out. With lines, they are summed, and a total given must be that sum."
+          }
+        },
+        "required": [
+          "kind",
+          "currency",
+          "documentNumber",
+          "fromAddress",
+          "issuedAt",
+          "payment",
+          "title",
+          "toAddress"
+        ]
+      },
+      "Document": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "direction",
+          "state",
+          "from",
+          "to",
+          "encrypted",
+          "ownKey",
+          "number",
+          "title",
+          "issuedAt",
+          "dueAt",
+          "currency",
+          "totalMinor",
+          "references",
+          "files",
+          "content",
+          "createdAt",
+          "queuedAt",
+          "deliveredAt",
+          "receivedAt",
+          "failedAt",
+          "failureCode",
+          "retrying"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "invoice",
+              "receipt",
+              "letter",
+              "payslip",
+              "unopened"
+            ]
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "outgoing",
+              "incoming"
+            ]
+          },
+          "state": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "encrypted": {
+            "type": "boolean"
+          },
+          "ownKey": {
+            "type": "boolean",
+            "description": "Kept with its owner's own key: eBill cannot open it, so it has no content here."
+          },
+          "number": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "totalMinor": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/File"
+            }
+          },
+          "content": {
+            "anyOf": [
+              {
+                "type": "object",
+                "description": "By kind: lineItems, taxTotals and description; receipt; letter; or payslip."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "queuedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deliveredAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "receivedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failureCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retrying": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DocumentLineDiscountInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "amountMinor": {
+            "type": "integer",
+            "description": "What comes off before tax; the line's other amounts are already net of it. A PERCENT's is checked."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "AMOUNT",
+              "PERCENT"
+            ]
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "With PERCENT only: more than 0, at most 100, up to two decimals."
+          }
+        },
+        "required": [
+          "amountMinor",
+          "kind"
+        ]
+      },
+      "DocumentLineItemInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Up to 300 characters."
+          },
+          "discount": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DocumentLineDiscountInput"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A discount on this line; or, with invoiceDiscount, what the whole invoice's takes off."
+          },
+          "invoiceDiscount": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The whole invoice's discount: described \"Discount\" or \"Discount 10%\", quantity \"1\", its amounts negative (the tax taken off), after every other line, one for each tax category. Not with discounts on lines."
+          },
+          "lineTotalMinor": {
+            "type": "integer",
+            "description": "What this line adds to the total, tax included."
+          },
+          "quantity": {
+            "type": "string",
+            "description": "A decimal, as text: up to nine digits, and up to six after the point."
+          },
+          "taxAmountMinor": {
+            "type": "integer",
+            "description": "The tax inside lineTotalMinor. 0 for none."
+          },
+          "taxCategory": {
+            "type": "string",
+            "description": "A short code, 1 to 40 letters, digits and _ . : % -. \"none\" for no tax."
+          },
+          "unitPriceMinor": {
+            "type": "integer",
+            "description": "An amount in minor units (cents)."
+          }
+        },
+        "required": [
+          "description",
+          "lineTotalMinor",
+          "quantity",
+          "taxAmountMinor",
+          "taxCategory",
+          "unitPriceMinor"
+        ]
+      },
+      "DocumentPage": {
+        "type": "object",
+        "required": [
+          "data",
+          "next"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Document"
+            }
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "DraftRequest": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/CreateInvoiceDraftInputRequest"
+          },
+          {
+            "$ref": "#/components/schemas/CreateReceiptDraftInputRequest"
+          },
+          {
+            "$ref": "#/components/schemas/CreateLetterDraftInputRequest"
+          },
+          {
+            "$ref": "#/components/schemas/CreatePayslipDraftInputRequest"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind",
+          "mapping": {
+            "invoice": "#/components/schemas/CreateInvoiceDraftInputRequest",
+            "receipt": "#/components/schemas/CreateReceiptDraftInputRequest",
+            "letter": "#/components/schemas/CreateLetterDraftInputRequest",
+            "payslip": "#/components/schemas/CreatePayslipDraftInputRequest"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error",
+          "message",
+          "reference"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "A code: unauthorized, insufficient_scope, not_found, invalid_request, invalid_idempotency_key, …"
+          },
+          "message": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Quote it to eBill's support: it finds this request's log."
+          }
+        }
+      },
+      "File": {
+        "type": "object",
+        "required": [
+          "position",
+          "name",
+          "mediaType",
+          "size",
+          "available"
+        ],
+        "properties": {
+          "position": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "mediaType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "available": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Installation": {
+        "type": "object",
+        "required": [
+          "id",
+          "organisation",
+          "app",
+          "scopes",
+          "installedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organisation": {
+            "type": "object",
+            "required": [
+              "id",
+              "name"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "app": {
+            "type": "object",
+            "required": [
+              "handle",
+              "version"
+            ],
+            "properties": {
+              "handle": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              }
+            }
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "drafts:write",
+                "documents:send",
+                "documents:read",
+                "documents:received:read",
+                "files:read",
+                "contacts:read",
+                "payments:read",
+                "payments:write"
+              ]
+            }
+          },
+          "installedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Payment": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "availability": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "paidMinor": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "refundedMinor": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outstandingMinor": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dueAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "PayslipContributionInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "amountMinor": {
+            "type": "integer",
+            "description": "An amount in minor units (cents)."
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A code: lower case letters, digits and _, or one under a prefix (au:penalty)."
+          },
+          "fundName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The fund it is paid to."
+          }
+        },
+        "required": [
+          "amountMinor"
+        ]
+      },
+      "PayslipDeductionInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "amountMinor": {
+            "type": "integer",
+            "description": "An amount in minor units (cents)."
+          },
+          "category": {
+            "type": "string",
+            "description": "A code: lower case letters, digits and _, or one under a prefix (au:penalty)."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payeeName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Who it is paid to."
+          }
+        },
+        "required": [
+          "amountMinor",
+          "category"
+        ]
+      },
+      "PayslipEarningInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "amountMinor": {
+            "type": "integer",
+            "description": "An amount in minor units (cents)."
+          },
+          "category": {
+            "type": "string",
+            "description": "A code: lower case letters, digits and _, or one under a prefix (au:penalty)."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A decimal, as text (\"38\", \"-1.5\")."
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A decimal, as text (\"38\", \"-1.5\")."
+          },
+          "rateUnit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A code: lower case letters, digits and _, or one under a prefix (au:penalty)."
+          }
+        },
+        "required": [
+          "amountMinor",
+          "category"
+        ]
+      },
+      "PayslipLeaveInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "accrued": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A decimal, as text (\"38\", \"-1.5\")."
+          },
+          "balance": {
+            "type": "string",
+            "description": "A decimal, as text (\"38\", \"-1.5\")."
+          },
+          "category": {
+            "type": "string",
+            "description": "A code: lower case letters, digits and _, or one under a prefix (au:penalty)."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "taken": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A decimal, as text (\"38\", \"-1.5\")."
+          },
+          "unit": {
+            "type": "string",
+            "description": "hours, days or weeks."
+          }
+        },
+        "required": [
+          "balance",
+          "category",
+          "unit"
+        ]
+      },
+      "PayslipPayRateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "amountMinor": {
+            "type": "integer",
+            "description": "An amount in minor units (cents)."
+          },
+          "asAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the rate applied from."
+          },
+          "unit": {
+            "type": "string",
+            "description": "hour, year, and so on: a code."
+          }
+        },
+        "required": [
+          "amountMinor",
+          "asAt",
+          "unit"
+        ]
+      },
+      "PayslipYearToDateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "amountMinor": {
+            "type": "integer",
+            "description": "An amount in minor units (cents)."
+          },
+          "name": {
+            "type": "string",
+            "description": "Your own name for the total, e.g. gross or tax."
+          }
+        },
+        "required": [
+          "amountMinor",
+          "name"
+        ]
+      },
+      "ReceiptPaymentInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "amountMinor": {
+            "type": "integer",
+            "description": "More than 0. Less than the receipt's total is a part payment; more is refused when it is sent."
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "card, bank_transfer, cash, or a code under a prefix (au:bpay): lower case letters, digits and _."
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Your reference for the payment, up to 100 characters."
+          }
+        },
+        "required": [
+          "amountMinor",
+          "paidAt"
+        ],
+        "description": "What a receipt records was paid."
+      },
+      "Settings": {
+        "type": "object",
+        "required": [
+          "values",
+          "updatedAt"
+        ],
+        "properties": {
+          "values": {
+            "type": "object"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Token": {
+        "type": "object",
+        "required": [
+          "access_token",
+          "refresh_token",
+          "token_type",
+          "expires_in",
+          "installation_id",
+          "scopes"
+        ],
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string",
+            "const": "Bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "description": "Seconds the access token works for."
+          },
+          "installation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "drafts:write",
+                "documents:send",
+                "documents:read",
+                "documents:received:read",
+                "files:read",
+                "contacts:read",
+                "payments:read",
+                "payments:write"
+              ]
+            }
+          }
+        }
+      },
+      "TokenError": {
+        "type": "object",
+        "required": [
+          "error",
+          "error_description",
+          "reference"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "invalid_request",
+              "unsupported_grant_type",
+              "invalid_grant"
+            ]
+          },
+          "error_description": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Quote it to eBill's support: it finds this request's log."
+          }
+        }
+      },
+      "TokenRequest": {
+        "type": "object",
+        "required": [
+          "grant_type",
+          "client_id",
+          "client_secret"
+        ],
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "enum": [
+              "authorization_code",
+              "refresh_token"
+            ]
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string",
+            "description": "The app's client secret (ebcs_…). Only ever sent from the app's server."
+          },
+          "code": {
+            "type": "string",
+            "description": "authorization_code: the code (ebac_…) the redirect URL was given. Works once, for ten minutes."
+          },
+          "redirect_uri": {
+            "type": "string",
+            "description": "authorization_code: the redirect URL the code was sent to, exactly."
+          },
+          "refresh_token": {
+            "type": "string",
+            "description": "refresh_token: the refresh token (ebrt_…). Works once; the answer has a new one."
+          }
+        }
+      }
+    }
+  }
+}

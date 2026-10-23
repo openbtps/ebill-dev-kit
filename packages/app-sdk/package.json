@@ -40,9 +40,13 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test \"src/**/*.test.ts\"",
+    "generate": "openapi-typescript openapi.json -o src/api-types.ts",
     "prepack": "pnpm run build"
   },
   "publishConfig": {
     "access": "public"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0"
   }
 }

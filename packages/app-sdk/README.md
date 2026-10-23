@@ -32,12 +32,38 @@ const ebill = new EbillClient({ accessToken: tokens.accessToken });
 const installation = await ebill.getInstallation();
 const { values } = await ebill.getSettings();
 
-const draft = await ebill.request<{ id: string }>("POST", "/v1/drafts", { body: draftBody, idempotencyKey: crypto.randomUUID() });
+const draft = await ebill.createDraft({
+  kind: "invoice",
+  fromAddress: "accounts$acme.example",
+  toAddress: "customer$ebilladdress.com",
+  documentNumber: "INV-1001",
+  title: "October",
+  issuedAt: new Date().toISOString(),
+  currency: "AUD",
+  lineItems: [{ description: "Subscription", quantity: "1", unitPriceMinor: 2500, lineTotalMinor: 2500, taxAmountMinor: 0, taxCategory: "none" }],
+});
+// Keep the key with the draft: a retried send with the same key is never sent twice.
+await ebill.sendDocument(draft.id, { idempotencyKey: `send-${draft.id}` });
 
-for await (const document of ebill.paginate<{ id: string }>("/v1/documents", { kind: "invoice" })) {
-  console.log(document.id);
+for await (const document of ebill.documents("incoming")) {
+  console.log(document.id, document.kind);
 }
 ```
+
+| Call                                                      | Route                                     | Scope                                         |
+| --------------------------------------------------------- | ----------------------------------------- | --------------------------------------------- |
+| `getInstallation()`                                       | `GET /v1/installation`                    | none                                          |
+| `getSettings()`                                           | `GET /v1/installation/settings`           | none                                          |
+| `listDocuments(direction, { limit, after })`, `documents` | `GET /v1/documents`                       | `documents:read` or `documents:received:read` |
+| `getDocument(id)`                                         | `GET /v1/documents/{id}`                  | by its direction                              |
+| `downloadFile(id, position)`                              | `GET /v1/documents/{id}/files/{position}` | `files:read`                                  |
+| `getPayment(id)`                                          | `GET /v1/documents/{id}/payment`          | `payments:read`                               |
+| `createDraft(draft)`                                      | `POST /v1/drafts`                         | `drafts:write`                                |
+| `sendDocument(id, { idempotencyKey })`                    | `POST /v1/documents/{id}/send`            | `documents:send`                              |
+| `listContacts()`                                          | `GET /v1/contacts`                        | `contacts:read`                               |
+
+The types (`Document`, `Payment`, `Contact`, `DraftRequest`, and `paths` and `components` for everything) are generated from the API's OpenAPI
+document. `request(method, path, options)` calls any other `/v1/...` route.
 
 `accessToken` can also be a function returning a current token, so you can refresh it in one place.
 

@@ -47,6 +47,8 @@ export interface SendInit {
   body?: string | undefined;
   /** Whether a 5xx or network failure may be retried. Only true when repeating the request cannot do the work twice. */
   replayable: boolean;
+  /** The answer is a file: its bytes are returned, not parsed as JSON. */
+  binary?: boolean;
   signal?: AbortSignal | undefined;
 }
 
@@ -162,7 +164,7 @@ export class Transport {
 
   async send(init: SendInit): Promise<unknown> {
     const url = buildUrl(this.baseUrl, init.path, init.query);
-    const headers = { accept: "application/json", "user-agent": this.#userAgent, ...init.headers };
+    const headers = { accept: init.binary === true ? "*/*" : "application/json", "user-agent": this.#userAgent, ...init.headers };
     const { maxRetries, baseDelayMs, maxDelayMs, onRetry } = this.#retry;
 
     for (let retry = 0; ; retry++) {
@@ -172,7 +174,7 @@ export class Transport {
         const signals = [AbortSignal.timeout(this.#timeoutMs)];
         if (init.signal) signals.push(init.signal);
         const response = await this.#fetch(url, { method: init.method, headers, body: init.body ?? null, signal: AbortSignal.any(signals) });
-        if (response.ok) return await readBody(response);
+        if (response.ok) return init.binary === true ? new Uint8Array(await response.arrayBuffer()) : await readBody(response);
         failure = await toApiError(response);
         const retryable = response.status === 429 || (response.status >= 500 && init.replayable);
         if (!retryable) throw failure;
