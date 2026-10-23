@@ -54,4 +54,4 @@ The full rules are in [CONTRACT.md](https://github.com/openbtps/ebill-dev-kit/bl
 
 ## Licence
 
-To be announced.
+[MIT](LICENSE).

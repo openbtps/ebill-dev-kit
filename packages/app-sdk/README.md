@@ -1,7 +1,8 @@
 # @ebilladdress/app-sdk
 
 A small library for the server side of an eBillAddress Marketplace app: complete the install, call the API, verify webhooks. No runtime
-dependencies. Requires Node.js 22.12 or later.
+dependencies. Requires Node.js 22.12 or later. An ES module: `import` it, or `require()` it from CommonJS, which Node.js 22.12
+and later can do with no build of its own.
 
 ```sh
 npm install @ebilladdress/app-sdk
@@ -114,4 +115,4 @@ help you check values. See [CONTRACT.md](https://github.com/openbtps/ebill-dev-k
 
 ## Licence
 
-To be announced.
+[MIT](LICENSE).
