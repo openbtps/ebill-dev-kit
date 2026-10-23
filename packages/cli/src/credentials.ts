@@ -42,11 +42,13 @@ export function apiUrlOf(place: Place): string {
   try {
     parsed = new URL(url);
   } catch {
-    throw new ApiUrlError(`EBILL_API_URL "${url}" is not a URL.`);
+    // Not echoed: it may hold a password.
+    throw new ApiUrlError("EBILL_API_URL is not a URL.");
   }
-  const local = parsed.protocol === "http:" && LOCAL_HOSTS.has(parsed.hostname);
-  if (parsed.protocol !== "https:" && !local) throw new ApiUrlError(`EBILL_API_URL must be https (http only for localhost): "${url}" was not used.`);
   if (parsed.username !== "" || parsed.password !== "") throw new ApiUrlError("EBILL_API_URL must not carry a user name or password.");
+  const local = parsed.protocol === "http:" && LOCAL_HOSTS.has(parsed.hostname);
+  if (parsed.protocol !== "https:" && !local)
+    throw new ApiUrlError(`EBILL_API_URL must be https (http only for localhost): ${parsed.protocol}//${parsed.host} was not used.`);
   return url;
 }
 

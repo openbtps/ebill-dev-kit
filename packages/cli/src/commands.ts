@@ -79,7 +79,19 @@ export async function login(context: Context): Promise<void> {
       await context.sleep(interval * 1000);
       const polled = await api.poll(started.deviceCode, `ebill CLI on ${hostname()}`);
       if ("token" in polled) {
-        const file = await saveCredentials(context.place, { apiUrl: apiUrlOf(context.place), token: polled.token });
+        let file: string;
+        try {
+          file = await saveCredentials(context.place, { apiUrl: apiUrlOf(context.place), token: polled.token });
+        } catch (error) {
+          const code = (error as { code?: unknown }).code;
+          const why = typeof code === "string" ? ` (${code})` : "";
+          context.stderr(
+            `eBill signed the CLI in, but the sign-in could not be saved in ${credentialsFile(context.place)}${why}. ` +
+              'Fix that folder\'s permissions and run "ebill login" again; revoke the unsaved token under Developer tokens in eBill.\n',
+          );
+          context.fail();
+          return;
+        }
         context.stdout(`Signed in. Your sign-in is saved in ${file}, readable by you alone.\n`);
         return;
       }
@@ -119,7 +131,15 @@ async function appIn(context: Context, api: DeveloperApi, dir: string): Promise<
     context.fail();
     return undefined;
   }
-  return { app: { ...app, handle: plain(app.handle), kind: plain(app.kind) }, ...files };
+  // Everything eBill said about the app, printable, once: no command prints a field raw.
+  const versions = app.versions.map((one) => ({
+    ...one,
+    version: plain(one.version),
+    state: plain(one.state),
+    submittedAt: plain(one.submittedAt),
+    reviewNote: one.reviewNote === null ? null : plain(one.reviewNote),
+  }));
+  return { app: { ...app, handle: plain(app.handle), kind: plain(app.kind), versions }, ...files };
 }
 
 export async function deploy(context: Context, dir: string, version: string | undefined): Promise<void> {

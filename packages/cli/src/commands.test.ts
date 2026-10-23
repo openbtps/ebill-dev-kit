@@ -146,6 +146,15 @@ describe("ebill login", () => {
     assert.match((await ebill({ EBILL_API_URL: "http://api.example.com", EBILL_TOKEN: TOKEN }, "app", "versions", "--dir", "acme")).err, /must be https/);
     assert.deepEqual(ebillServer.seen, []);
     assert.equal((await ebill({ EBILL_API_URL: "http://localhost:4000" }, "login")).code, EXIT.ok);
+    const withPassword = await ebill({ EBILL_API_URL: "http://pat:hunter2@api.example.com" }, "login");
+    assert.match(withPassword.err, /must not carry a user name or password/);
+    assert.doesNotMatch(withPassword.err, /hunter2/, "a password is never echoed");
+  });
+
+  test("status prints what eBill said about the live version without control characters too", async () => {
+    ebillServer.versions = [{ id: "v-1", version: "1.0.0\u001b[2J", state: "released", submittedAt: "2027-01-01T00:00:00Z", reviewNote: null }];
+    const shown = await ebill({ EBILL_TOKEN: TOKEN }, "app", "status", "--dir", "acme");
+    assert.ok(!Array.from(shown.out).some((character) => character !== "\n" && isControl(character)));
   });
 
   test("a refused sign-in is said, and nothing is kept; logout forgets it", async () => {
