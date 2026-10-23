@@ -325,6 +325,15 @@ export function validateListing(raw: unknown): Failure[] {
   return result.success ? [] : fromZod(LISTING_FILE, result.error);
 }
 
+/** The two files as parsed, ready to send: what `ebill app deploy` pushes once they pass every local check. */
+export async function loadAppFiles(dir: string): Promise<{ manifest: unknown; listing: unknown } | { failures: Failure[] }> {
+  const [app, listing] = await Promise.all([load(dir, APP_FILE), load(dir, LISTING_FILE)]);
+  if ("failure" in app || "failure" in listing)
+    return { failures: [...("failure" in app ? [app.failure] : []), ...("failure" in listing ? [listing.failure] : [])] };
+  const failures = [...validateAppManifest(app.raw), ...validateListing(listing.raw)];
+  return failures.length > 0 ? { failures } : { manifest: app.raw, listing: listing.raw };
+}
+
 /** Every local check on an app directory. An empty list means it is ready to deploy, as far as can be told offline. */
 export async function validateApp(dir: string): Promise<Failure[]> {
   const [app, listing] = await Promise.all([load(dir, APP_FILE), load(dir, LISTING_FILE)]);

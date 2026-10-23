@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
+import { setTimeout as wait } from "node:timers/promises";
 import { Command, CommanderError, InvalidArgumentError } from "commander";
+import { deploy, login, logout, release, status, versions, type Context } from "./commands.ts";
 import { INIT_FILES, InitConflictError, initApp } from "./init.ts";
 import { APP_FILE, LISTING_FILE, SKIPPED_CHECKS, validateApp, type Failure } from "./manifest.ts";
 
@@ -8,13 +10,20 @@ export interface Io {
   stdout: (text: string) => void;
   stderr: (text: string) => void;
   cwd: string;
+  /** Default: the process's. EBILL_API_URL, EBILL_TOKEN and XDG_CONFIG_HOME are read from it. */
+  env?: Record<string, string | undefined>;
+  /** Default: the global fetch. */
+  fetch?: typeof globalThis.fetch;
+  /** Where the sign-in is kept. Default: $XDG_CONFIG_HOME/ebill, or ~/.config/ebill. */
+  configDir?: string;
+  /** Default: a timer. Tests pass one that does not wait. */
+  sleep?: (ms: number) => Promise<void>;
 }
 
-/** Exit codes: 0 done, 1 something to fix (or bad usage), 2 needs the eBill developer API, which is not available yet. */
+/** Exit codes: 0 done, 1 something to fix (or bad usage), 2 needs something eBill does not have yet. */
 export const EXIT = { ok: 0, failed: 1, unavailable: 2 } as const;
 
 const VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
-const ISO_WITH_ZONE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
 
 function cliVersion(): string {
   const pkg: unknown = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
@@ -25,13 +34,6 @@ function cliVersion(): string {
 function parseVersion(value: string): string {
   if (!VERSION.test(value)) throw new InvalidArgumentError("Use x.y.z with no leading zeros and no pre-release part, for example 1.2.0.");
   return value;
-}
-
-function parseInstant(value: string): string {
-  if (!ISO_WITH_ZONE.test(value) || Number.isNaN(Date.parse(value))) {
-    throw new InvalidArgumentError("Use an ISO 8601 time with a zone, for example 2027-03-01T09:00:00Z.");
-  }
-  return new Date(value).toISOString();
 }
 
 function parsePort(value: string): number {
@@ -56,10 +58,17 @@ export function buildProgram(io: Io, setExit: (code: number) => void): Command {
     .configureOutput({ writeOut: io.stdout, writeErr: io.stderr })
     .exitOverride();
 
-  const pending = (command: string) => (): void => {
-    io.stderr(`"ebill ${command}" needs the eBill developer API, which is coming soon. Nothing was sent.\n`);
-    setExit(EXIT.unavailable);
+  const context: Context = {
+    stdout: io.stdout,
+    stderr: io.stderr,
+    place: { env: io.env ?? process.env, configDir: io.configDir },
+    fetch: io.fetch ?? globalThis.fetch.bind(globalThis),
+    sleep: io.sleep ?? ((ms: number) => wait(ms)),
+    fail: () => {
+      setExit(EXIT.failed);
+    },
   };
+  const folder = (dir: string): string => resolve(io.cwd, dir);
 
   const runValidation = async (dir: string): Promise<boolean> => {
     const failures = await validateApp(dir);
@@ -73,7 +82,14 @@ export function buildProgram(io: Io, setExit: (code: number) => void): Command {
     return failures.length === 0;
   };
 
-  program.command("login").description("Sign in to your eBill developer account.").action(pending("login"));
+  program
+    .command("login")
+    .description("Sign in to eBill as your organisation: you approve a code in eBill's web app.")
+    .action(() => login(context));
+  program
+    .command("logout")
+    .description("Forget the sign-in kept on this computer.")
+    .action(() => logout(context));
 
   const app = program.command("app").description("Create, check and ship an app.").enablePositionalOptions();
 
@@ -84,7 +100,7 @@ export function buildProgram(io: Io, setExit: (code: number) => void): Command {
     .option("--handle <handle>", "app handle (default: from the folder name)")
     .action(async (dir: string, options: { handle?: string }) => {
       try {
-        const result = await initApp(resolve(io.cwd, dir), options);
+        const result = await initApp(folder(dir), options);
         const where = relative(io.cwd, result.dir) || ".";
         io.stdout(
           `Created in ${where}:\n${result.files.map((file) => `  ${file}\n`).join("")}\nNext: put your client id in ${APP_FILE}, then run "ebill app validate".\n`,
@@ -105,7 +121,7 @@ export function buildProgram(io: Io, setExit: (code: number) => void): Command {
     .argument("[dir]", "app folder", ".")
     .option("--json", "print the result as JSON")
     .action(async (dir: string, options: { json?: boolean }) => {
-      const target = resolve(io.cwd, dir);
+      const target = folder(dir);
       if (options.json) {
         const failures = await validateApp(target);
         io.stdout(`${JSON.stringify({ ok: failures.length === 0, failures, skipped: SKIPPED_CHECKS }, null, 2)}\n`);
@@ -120,44 +136,49 @@ export function buildProgram(io: Io, setExit: (code: number) => void): Command {
     .description("Run your app against eBill while you develop it.")
     .option("--dir <dir>", "app folder", ".")
     .option("--port <port>", "port your local server listens on", parsePort, 3000)
-    .action(pending("app dev"));
+    .action(() => {
+      io.stderr('"ebill app dev" needs your sandbox organisation, which comes with eBill\'s developer portal. Nothing was sent.\n');
+      setExit(EXIT.unavailable);
+    });
 
   app
     .command("deploy")
-    .description("Upload a new version of the app. It is not released until you run release.")
-    .requiredOption("--version <version>", "version to deploy, x.y.z", parseVersion)
-    .requiredOption("--message <message>", "what changed, for your version history")
+    .description("Push the version in ebill.app.toml through eBill's checks. It waits for review, and is not released until you run release.")
+    .option("--version <version>", "the version you mean to push: refused unless ebill.app.toml says the same", parseVersion)
     .option("--dir <dir>", "app folder", ".")
-    .action(async (options: { version: string; message: string; dir: string }) => {
-      if (!(await runValidation(resolve(io.cwd, options.dir)))) {
+    .action(async (options: { version?: string; dir: string }) => {
+      if (!(await runValidation(folder(options.dir)))) {
         setExit(EXIT.failed);
         return;
       }
-      pending("app deploy")();
+      await deploy(context, folder(options.dir), options.version);
     });
 
-  app.command("versions").description("List deployed versions.").option("--dir <dir>", "app folder", ".").action(pending("app versions"));
+  app
+    .command("versions")
+    .description("List the app's versions and where review has them.")
+    .option("--dir <dir>", "app folder", ".")
+    .action((options: { dir: string }) => versions(context, folder(options.dir)));
 
   app
     .command("release")
-    .description("Release a deployed version to every installation, now or at a set time.")
-    .argument("<version>", "deployed version, x.y.z", parseVersion)
-    .option("--at <time>", "when to release, ISO 8601 with a zone", parseInstant)
+    .description("Release a version eBill approved. Installations move to it unless it asks for more than they granted.")
+    .argument("<version>", "approved version, x.y.z", parseVersion)
     .option("--dir <dir>", "app folder", ".")
-    .action(pending("app release"));
+    .action((version: string, options: { dir: string }) => release(context, folder(options.dir), version, false));
 
   app
     .command("rollback")
-    .description("Put every installation back on an earlier released version.")
-    .argument("<version>", "released version, x.y.z", parseVersion)
+    .description("Release an earlier version again, one that was released before.")
+    .argument("<version>", "version released before, x.y.z", parseVersion)
     .option("--dir <dir>", "app folder", ".")
-    .action(pending("app rollback"));
+    .action((version: string, options: { dir: string }) => release(context, folder(options.dir), version, true));
 
   app
     .command("status")
-    .description("Show the live version, any scheduled release, and review state.")
+    .description("Show the live version and what waits for review.")
     .option("--dir <dir>", "app folder", ".")
-    .action(pending("app status"));
+    .action((options: { dir: string }) => status(context, folder(options.dir)));
 
   return program;
 }

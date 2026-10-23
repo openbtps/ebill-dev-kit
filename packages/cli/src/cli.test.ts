@@ -20,7 +20,8 @@ after(async () => {
 async function ebill(...argv: string[]): Promise<{ code: number; out: string; err: string }> {
   let out = "";
   let err = "";
-  const code = await run(argv, { stdout: (text) => (out += text), stderr: (text) => (err += text), cwd: root });
+  // No environment and a config folder of its own: a developer's real sign-in is never read.
+  const code = await run(argv, { stdout: (text) => (out += text), stderr: (text) => (err += text), cwd: root, env: {}, configDir: join(root, ".config") });
   return { code, out, err };
 }
 
@@ -114,35 +115,34 @@ describe("ebill app validate", () => {
   });
 });
 
-describe("commands that need the developer API", () => {
-  test("exit 2 with a clear message", async () => {
-    await initApp(join(root, "pending"));
+describe("commands that talk to eBill, before any sign-in (commands.test.ts has them signed in)", () => {
+  test("app dev waits for the sandbox organisation, and says so", async () => {
+    const result = await ebill("app", "dev", "--port", "4000");
+    assert.equal(result.code, EXIT.unavailable);
+    assert.match(result.err, /sandbox organisation/);
+  });
+
+  test("each needs a sign-in, and says how to get one", async () => {
+    await initApp(join(root, "unsigned"));
     for (const argv of [
-      ["login"],
-      ["app", "dev", "--port", "4000"],
-      ["app", "deploy", "--version", "1.2.0", "--message", "First", "--dir", "pending"],
-      ["app", "versions"],
-      ["app", "release", "1.2.0", "--at", "2027-03-01T09:00:00+10:00"],
-      ["app", "rollback", "1.1.0"],
-      ["app", "status"],
+      ["app", "versions", "--dir", "unsigned"],
+      ["app", "release", "1.0.0", "--dir", "unsigned"],
+      ["app", "status", "--dir", "unsigned"],
     ]) {
       const result = await ebill(...argv);
-      assert.equal(result.code, EXIT.unavailable, argv.join(" "));
-      assert.match(result.err, /needs the eBill developer API, which is coming soon/, argv.join(" "));
+      assert.equal(result.code, EXIT.failed, argv.join(" "));
+      assert.match(result.err, /Not signed in to eBill. Run "ebill login"/, argv.join(" "));
     }
   });
 
-  test("still parse their options for real", async () => {
-    assert.equal((await ebill("app", "deploy", "--version", "1.2", "--message", "x")).code, EXIT.failed);
-    assert.equal((await ebill("app", "deploy", "--version", "1.2.0")).code, EXIT.failed);
+  test("parse their options for real", async () => {
+    assert.equal((await ebill("app", "deploy", "--version", "1.2")).code, EXIT.failed);
     assert.equal((await ebill("app", "release", "v1.0.0")).code, EXIT.failed);
-    assert.equal((await ebill("app", "release", "1.0.0", "--at", "next tuesday")).code, EXIT.failed);
-    assert.equal((await ebill("app", "release", "1.0.0", "--at", "2027-03-01T09:00:00")).code, EXIT.failed);
     assert.equal((await ebill("app", "dev", "--port", "99999")).code, EXIT.failed);
   });
 
   test("deploy checks the app locally first", async () => {
-    const result = await ebill("app", "deploy", "--version", "1.0.0", "--message", "x", "--dir", "missing");
+    const result = await ebill("app", "deploy", "--dir", "missing");
     assert.equal(result.code, EXIT.failed);
     assert.match(result.err, /file-missing/);
   });
