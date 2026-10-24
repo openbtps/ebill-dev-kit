@@ -47,7 +47,16 @@ fields = [
 ]
 
 [sync]
-# Browser sync is not documented yet. Keep this false.
+# Browser sync: lets a person whose eBill address keeps its own key share their bills with your app, through eBill's
+# sync window (openSyncWindow in "@ebilladdress/app-sdk/browser"). Each bill is sealed to your public key below and
+# opened on your server with its private half (openSyncedDocument). To use it, set browser = true and add your key:
+#   openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out sync-private.pem
+#   openssl pkey -in sync-private.pem -pubout -out sync-public.pem
+# public_key = """
+# -----BEGIN PUBLIC KEY-----
+# ...
+# -----END PUBLIC KEY-----
+# """
 browser = false
 
 [pricing]

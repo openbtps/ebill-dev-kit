@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
+import { generateKeyPairSync } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, test } from "node:test";
-import { SCOPE_NAMES, TOPIC_NAMES, requiredScope } from "@ebilladdress/app-sdk";
+import { SCOPE_NAMES, SYNC_SCOPE, TOPIC_NAMES, requiredScope } from "@ebilladdress/app-sdk";
 import { parse } from "smol-toml";
 import { KNOWN_SCOPES, KNOWN_TOPICS, validateAppManifest, validateListing, type Failure } from "./manifest.ts";
 
@@ -175,11 +176,30 @@ describe("ebill.app.toml", () => {
     assert.deepEqual(validateAppManifest(doc), []);
   });
 
+  test("browser sync: browser = true needs an RSA public key, and its scope is never listed in [access]", () => {
+    const key = generateKeyPairSync("rsa", { modulusLength: 2048 }).publicKey.export({ type: "spki", format: "pem" }).toString();
+    const said = (sync: Doc, scopes?: string[]): string[] => {
+      const doc = goodApp();
+      doc.sync = sync;
+      if (scopes) section(doc, "access").scopes = scopes;
+      return validateAppManifest(doc).map((failure) => `${failure.check} ${failure.path}`);
+    };
+    assert.deepEqual(said({ browser: true, public_key: key }), []);
+    assert.deepEqual(said({ browser: true }), ["sync-key ebill.app.toml:sync.public_key"]);
+    assert.deepEqual(said({ browser: false, public_key: key }), ["sync-key ebill.app.toml:sync.public_key"]);
+    const weak = generateKeyPairSync("rsa", { modulusLength: 1024 }).publicKey.export({ type: "spki", format: "pem" }).toString();
+    assert.deepEqual(said({ browser: true, public_key: weak }), ["sync-key ebill.app.toml:sync.public_key"]);
+    assert.deepEqual(said({ browser: true, public_key: key }, ["documents:read", SYNC_SCOPE]), ["sync-scope ebill.app.toml:access.scopes[1]"]);
+  });
+
   test("scopes and topics come from the SDK, and every pair it defines is accepted", () => {
-    assert.equal(KNOWN_SCOPES, SCOPE_NAMES);
+    assert.deepEqual(
+      KNOWN_SCOPES,
+      SCOPE_NAMES.filter((scope) => scope !== SYNC_SCOPE),
+    );
     assert.equal(KNOWN_TOPICS, TOPIC_NAMES);
     const doc = goodApp();
-    section(doc, "access").scopes = [...SCOPE_NAMES];
+    section(doc, "access").scopes = [...KNOWN_SCOPES];
     section(doc, "webhooks").topics = [...TOPIC_NAMES];
     assert.deepEqual(validateAppManifest(doc), []);
     for (const topic of TOPIC_NAMES) {

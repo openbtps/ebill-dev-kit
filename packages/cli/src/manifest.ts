@@ -1,14 +1,14 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { SCOPE_NAMES, TOPIC_NAMES, WEBHOOK_API_VERSIONS, isScope, isTopic, requiredScope } from "@ebilladdress/app-sdk";
+import { SCOPE_NAMES, SYNC_SCOPE, TOPIC_NAMES, WEBHOOK_API_VERSIONS, isScope, isTopic, requiredScope, syncKeyProblem } from "@ebilladdress/app-sdk";
 import { TomlError, parse as parseToml } from "smol-toml";
 import { z } from "zod";
 
 export const APP_FILE = "ebill.app.toml";
 export const LISTING_FILE = "listing.toml";
 
-/** The CLI keeps no list of its own: scopes and topics come from the SDK. */
-export const KNOWN_SCOPES = SCOPE_NAMES;
+/** The CLI keeps no list of its own: scopes and topics come from the SDK. Those [access] may list: browser sync's comes from [sync]. */
+export const KNOWN_SCOPES = SCOPE_NAMES.filter((scope) => scope !== SYNC_SCOPE);
 export const KNOWN_TOPICS = TOPIC_NAMES;
 
 export const SETTING_TYPES = ["text", "number", "boolean", "select", "date", "email", "url"] as const;
@@ -195,7 +195,7 @@ const appSchema = z.strictObject({
       sections: z.array(z.strictObject({ title: text(1, 60), fields: count(fieldSchema, 1, 50) })),
     })
     .optional(),
-  sync: z.strictObject({ browser: z.boolean() }).optional(),
+  sync: z.strictObject({ browser: z.boolean(), public_key: z.string().optional() }).optional(),
   pricing: z.strictObject({ model: z.enum(["free", "one_time"]) }),
 });
 
@@ -315,9 +315,34 @@ async function load(dir: string, file: string): Promise<{ raw: unknown } | { fai
   }
 }
 
+/**
+ * Browser sync: `browser = true` needs the public key eBill's sync window seals shared bills to, and only then has one.
+ * Its scope comes from [sync] alone, never from [access].
+ */
+function syncChecks(raw: unknown): Failure[] {
+  const failures: Failure[] = [];
+  const browser = at(raw, "sync", "browser");
+  const key = at(raw, "sync", "public_key");
+  const keyPath = formatPath(APP_FILE, ["sync", "public_key"]);
+  if (browser === true && typeof key !== "string") failures.push({ check: "sync-key", path: keyPath, reason: "is required when browser = true" });
+  if (browser !== true && key !== undefined) failures.push({ check: "sync-key", path: keyPath, reason: "is used only when browser = true" });
+  const problem = browser === true && typeof key === "string" ? syncKeyProblem(key) : undefined;
+  if (problem) failures.push({ check: "sync-key", path: keyPath, reason: problem });
+  const scopes = at(raw, "access", "scopes");
+  const listed = Array.isArray(scopes) ? scopes.indexOf(SYNC_SCOPE) : -1;
+  if (listed >= 0) {
+    failures.push({
+      check: "sync-scope",
+      path: formatPath(APP_FILE, ["access", "scopes", listed]),
+      reason: `"${SYNC_SCOPE}" is granted by [sync] browser = true, not listed here`,
+    });
+  }
+  return failures;
+}
+
 export function validateAppManifest(raw: unknown): Failure[] {
   const result = appSchema.safeParse(raw, { reportInput: true });
-  return [...(result.success ? [] : fromZod(APP_FILE, result.error)), ...crossChecks(raw)];
+  return [...(result.success ? [] : fromZod(APP_FILE, result.error)), ...crossChecks(raw), ...syncChecks(raw)];
 }
 
 export function validateListing(raw: unknown): Failure[] {
