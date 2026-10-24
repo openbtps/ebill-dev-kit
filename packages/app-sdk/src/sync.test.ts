@@ -82,6 +82,7 @@ test("only eBill's window, at eBill's origin, is listened to; the shared bills c
   const message = { type: "ebill.sync", version: 1, state: "s1", documents };
   send({ origin: "https://evil.example", source: popup, data: { ...message, documents: [] } });
   send({ origin: "https://ebilladdress.com", source: {}, data: { ...message, documents: [] } });
+  send({ origin: "https://ebilladdress.com", source: popup, data: { ...message, state: "another request", documents: [] } });
   send({ origin: "https://ebilladdress.com", source: popup, data: message });
   assert.deepEqual(await result, { state: "s1", documents });
 });

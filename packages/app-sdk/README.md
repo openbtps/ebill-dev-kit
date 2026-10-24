@@ -171,6 +171,12 @@ page. eBill never sees the bills or their key, and you never see their key.
 eBill's window never asks a person for their key: it uses one they already opened in eBill on that device. Never ask a person for their
 eBill key yourself, on your pages or anywhere else. eBill's review rejects an app that does.
 
+What the sealing proves: only that the bills reached your page from eBill's window, and that only your server can read them. Your server
+receives them from your own page, and your public key is public, so a person can send your server anything sealed to it. If you rely on a
+bill being genuine (as proof of income, for lending, or anything someone else trusts), verify its sender's BTPS signature in
+`bill.document` against the sender's key (with the BTPS SDK) before you trust it. Where you only keep a person's own records for them, you
+need not.
+
 ## Scopes and topics
 
 `SCOPES` maps each scope to the label users see; `TOPICS` maps each webhook topic to the scope it needs. `isScope`, `isTopic` and `requiredScope`

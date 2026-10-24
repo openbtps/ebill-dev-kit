@@ -128,7 +128,8 @@ export function openSyncWindow(options: SyncWindowOptions, host: SyncHost = glob
       // Only eBill's window, at eBill's origin, is listened to.
       if (event.origin !== origin || event.source !== popup) return;
       const result = resultOf(event.data);
-      if (result === undefined) return;
+      // And only the answer to this request: the state it was asked with comes back with it.
+      if (result === undefined || (result !== "cancelled" && result.state !== (options.state ?? null))) return;
       done();
       if (result === "cancelled") reject(new SyncCancelledError());
       else resolve(result);
