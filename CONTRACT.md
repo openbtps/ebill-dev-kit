@@ -231,6 +231,10 @@ Sections: `header`, `parties`, `details`, `lines`, `totals`, `payment`, `notes`,
 `number`, `issued`, `due`, `description`, `quantity`, `unitPrice`, `tax`, `lineTotal`, `subtotal`, `taxTotal`, `total`, `amountDue`,
 `paid`, `notes`, `payment`. The logo is always the sender's own. At most 16 KB; `ebill app init --template` writes one that passes.
 
+Your labels and text are printed on every document a sender draws with your template, so they may never say where to pay
+or whom to contact: no number of four or more digits, no web, email or BTPS address, and no hidden or direction-changing
+characters. Payment details are always the sender's own.
+
 ### What the CLI cannot check
 
 Whether links open, whether images can be fetched, and image sizes need the network. eBill checks them when you deploy; `ebill app validate` says

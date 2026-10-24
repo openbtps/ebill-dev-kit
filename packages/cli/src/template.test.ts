@@ -38,6 +38,10 @@ const CASES: [string, (doc: Doc) => void, string[]][] = [
   ["a label for a field that is not one", (d) => (at(d, "labels").amount = "999"), ["unknown-key template.json:labels"]],
   ["text that cannot be read", (d) => (at(d, "page").text = "#eeeeee"), ["contrast template.json:page.text"]],
   ["a logo of the developer's", (d) => (at(d, "logo").url = "https://dev.test/logo.png"), ["unknown-key template.json:logo"]],
+  ["text that reads backwards", (d) => (at(d, "text").footer = "Kauri ‮oiduts"), ["template-value template.json:text.footer"]],
+  ["bank details in the terms", (d) => (at(d, "text").terms = "Pay to BSB 062-000 account 1234 5678"), ["template-value template.json:text.terms"]],
+  ["a web address in the footer", (d) => (at(d, "text").footer = "Pay at www.pay.test"), ["template-value template.json:text.footer"]],
+  ["a BTPS address in the terms", (d) => (at(d, "text").terms = "Send to pay$kauri.test"), ["template-value template.json:text.terms"]],
 ];
 
 for (const [name, change, expected] of CASES) {
