@@ -2,7 +2,7 @@
 // releasing the app in a folder, found in the organisation's apps by the client id in its ebill.app.toml.
 import { hostname } from "node:os";
 import { ApiUrlError, apiUrlOf, forgetCredentials, readCredentials, saveCredentials, credentialsFile, type Place } from "./credentials.ts";
-import { DeveloperApi, DeveloperApiError, type AppVersion, type CheckFailure, type DeveloperApp } from "./developer-api.ts";
+import { DeveloperApi, DeveloperApiError, type AppFiles, type AppVersion, type CheckFailure, type DeveloperApp } from "./developer-api.ts";
 import { APP_FILE, loadAppFiles } from "./manifest.ts";
 
 /** What a command needs from where it runs; everything but the network and the clock is the CLI's own. */
@@ -117,7 +117,7 @@ export async function logout(context: Context): Promise<void> {
 }
 
 /** The app the folder's ebill.app.toml is, in the organisation's apps; told and undefined when it is not one. */
-async function appIn(context: Context, api: DeveloperApi, dir: string): Promise<{ app: DeveloperApp; manifest: unknown; listing: unknown } | undefined> {
+async function appIn(context: Context, api: DeveloperApi, dir: string): Promise<({ app: DeveloperApp } & AppFiles) | undefined> {
   const files = await loadAppFiles(dir);
   if ("failures" in files) {
     context.stderr(`${String(files.failures.length)} problem${files.failures.length === 1 ? "" : "s"} to fix first:\n\n${formatCheckFailures(files.failures)}`);
@@ -154,7 +154,7 @@ export async function deploy(context: Context, dir: string, version: string | un
       context.fail();
       return;
     }
-    const pushed = await api.push(found.app.id, found.manifest, found.listing);
+    const pushed = await api.push(found.app.id, found);
     if (pushed.state === "rejected") {
       context.stderr(`eBill's checks refused ${found.app.handle} ${inFile}:\n\n${formatCheckFailures(pushed.failures)}\nFix these and deploy again.\n`);
       context.fail();
@@ -175,7 +175,7 @@ export async function dev(context: Context, dir: string, port: number): Promise<
   await talking(context, async () => {
     const found = await appIn(context, api, dir);
     if (!found) return;
-    const installed = await api.dev(found.app.id, found.manifest, found.listing);
+    const installed = await api.dev(found.app.id, found);
     if (installed.state === "rejected") {
       context.stderr(`eBill's checks refused ${found.app.handle}:\n\n${formatCheckFailures(installed.failures)}\nFix these and run "ebill app dev" again.\n`);
       context.fail();

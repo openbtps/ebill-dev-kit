@@ -6,8 +6,8 @@
 client_id = "app_000000000000000000000000"
 # Your app's permanent name in URLs: 3 to 50 lowercase letters, digits or hyphens.
 handle = "{{handle}}"
-# "integration" connects eBill to another service; "template" is a ready-made document layout.
-kind = "integration"
+# "integration" connects eBill to another service; "template" is a ready-made document layout, in template.json.
+kind = "{{kind}}"
 # The version you deploy next: x.y.z, no leading zeros, no pre-release part.
 version = "1.0.0"
 

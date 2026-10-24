@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { SCOPE_NAMES, SYNC_SCOPE, TOPIC_NAMES, WEBHOOK_API_VERSIONS, isScope, isTopic, requiredScope, syncKeyProblem } from "@ebilladdress/app-sdk";
 import { TomlError, parse as parseToml } from "smol-toml";
 import { z } from "zod";
+import { TEMPLATE_FILE, validateTemplate } from "./template.ts";
 
 export const APP_FILE = "ebill.app.toml";
 export const LISTING_FILE = "listing.toml";
@@ -350,17 +351,53 @@ export function validateListing(raw: unknown): Failure[] {
   return result.success ? [] : fromZod(LISTING_FILE, result.error);
 }
 
-/** The two files as parsed, ready to send: what `ebill app deploy` pushes once they pass every local check. */
-export async function loadAppFiles(dir: string): Promise<{ manifest: unknown; listing: unknown } | { failures: Failure[] }> {
+/**
+ * A template app's template.json, read as JSON and checked: undefined for an integration, which has none (one beside
+ * it is a mistake, told). A missing or unreadable one is a failure.
+ */
+async function loadTemplate(dir: string, manifest: unknown): Promise<{ raw: unknown } | { failures: Failure[] } | undefined> {
+  const kind = isRecord(manifest) && isRecord(manifest.app) ? manifest.app.kind : undefined;
+  let source: string | undefined;
+  try {
+    source = await readFile(join(dir, TEMPLATE_FILE), "utf8");
+  } catch {
+    source = undefined;
+  }
+  if (kind !== "template") {
+    return source === undefined
+      ? undefined
+      : { failures: [{ check: "template-kind", path: TEMPLATE_FILE, reason: "is only for a template app: this app is an integration" }] };
+  }
+  if (source === undefined)
+    return { failures: [{ check: "file-missing", path: TEMPLATE_FILE, reason: `${TEMPLATE_FILE} was not found: a template app needs one` }] };
+  let raw: unknown;
+  try {
+    raw = JSON.parse(source) as unknown;
+  } catch (error) {
+    return { failures: [{ check: "json-syntax", path: TEMPLATE_FILE, reason: error instanceof Error ? error.message : String(error) }] };
+  }
+  const failures = validateTemplate(raw);
+  return failures.length > 0 ? { failures } : { raw };
+}
+
+/** The files as parsed, ready to send: what `ebill app deploy` pushes once they pass every local check. */
+export async function loadAppFiles(dir: string): Promise<{ manifest: unknown; listing: unknown; template?: unknown } | { failures: Failure[] }> {
   const [app, listing] = await Promise.all([load(dir, APP_FILE), load(dir, LISTING_FILE)]);
   if ("failure" in app || "failure" in listing)
     return { failures: [...("failure" in app ? [app.failure] : []), ...("failure" in listing ? [listing.failure] : [])] };
-  const failures = [...validateAppManifest(app.raw), ...validateListing(listing.raw)];
-  return failures.length > 0 ? { failures } : { manifest: app.raw, listing: listing.raw };
+  const template = await loadTemplate(dir, app.raw);
+  const failures = [...validateAppManifest(app.raw), ...validateListing(listing.raw), ...(template && "failures" in template ? template.failures : [])];
+  if (failures.length > 0) return { failures };
+  return { manifest: app.raw, listing: listing.raw, ...(template && "raw" in template ? { template: template.raw } : {}) };
 }
 
 /** Every local check on an app directory. An empty list means it is ready to deploy, as far as can be told offline. */
 export async function validateApp(dir: string): Promise<Failure[]> {
   const [app, listing] = await Promise.all([load(dir, APP_FILE), load(dir, LISTING_FILE)]);
-  return [...("failure" in app ? [app.failure] : validateAppManifest(app.raw)), ...("failure" in listing ? [listing.failure] : validateListing(listing.raw))];
+  const template = "failure" in app ? undefined : await loadTemplate(dir, app.raw);
+  return [
+    ...("failure" in app ? [app.failure] : validateAppManifest(app.raw)),
+    ...("failure" in listing ? [listing.failure] : validateListing(listing.raw)),
+    ...(template && "failures" in template ? template.failures : []),
+  ];
 }

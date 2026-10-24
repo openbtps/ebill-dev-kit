@@ -98,7 +98,8 @@ export function buildProgram(io: Io, setExit: (code: number) => void): Command {
     .description(`Create ${INIT_FILES.join(", ")} in a folder.`)
     .argument("[dir]", "folder to create the app in", ".")
     .option("--handle <handle>", "app handle (default: from the folder name)")
-    .action(async (dir: string, options: { handle?: string }) => {
+    .option("--template", "a template app: a starter template.json in place of the server")
+    .action(async (dir: string, options: { handle?: string; template?: boolean }) => {
       try {
         const result = await initApp(folder(dir), options);
         const where = relative(io.cwd, result.dir) || ".";

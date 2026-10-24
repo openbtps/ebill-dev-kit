@@ -10,7 +10,7 @@ type Doc = Record<string, unknown>;
 
 function template(file: string): Doc {
   const source = readFileSync(new URL(`../templates/${file}`, import.meta.url), "utf8");
-  return parse(source.replaceAll("{{handle}}", "acme-subscriptions").replaceAll("{{name}}", "Acme Subscriptions"));
+  return parse(source.replaceAll("{{handle}}", "acme-subscriptions").replaceAll("{{name}}", "Acme Subscriptions").replaceAll("{{kind}}", "integration"));
 }
 
 function goodApp(): Doc {
