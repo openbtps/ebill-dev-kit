@@ -27,6 +27,7 @@ class FakeEbill {
   approveAfter = 2;
   refuse = false;
   rejectPush = false;
+  sandbox = true;
   seen: string[] = [];
   versions: Version[] = [];
 
@@ -71,6 +72,17 @@ class FakeEbill {
       const made = { id: `v-${version}`, version, state: "review_pending", submittedAt: "2027-01-01T00:00:00Z", reviewNote: null };
       this.versions.unshift(made);
       return json(200, { state: "review_pending", failures: [], version: made });
+    }
+    if (url.pathname === "/developer/v1/apps/app-1/dev") {
+      if (!this.sandbox) return json(409, { error: "no_sandbox", message: "Make your sandbox in eBill's developer portal, then run `ebill app dev` again." });
+      const version = (JSON.parse(sent) as { manifest: { app: { version: string } } }).manifest.app.version;
+      return json(200, {
+        state: "dev",
+        failures: [],
+        version: { id: "v-dev", version, state: "dev", submittedAt: "2027-01-01T00:00:00Z", reviewNote: null },
+        sandbox: { organisationId: "sandbox-1", name: "Acme (Sandbox)" },
+        installation: { installationId: "inst-1", redirectUrl: "https://acme.example/cb?code=abc&state=xyz" },
+      });
     }
     const released = /^\/developer\/v1\/versions\/(.+)\/release$/.exec(url.pathname)?.[1];
     const target = this.versions.find((one) => one.id === released);
@@ -211,6 +223,19 @@ describe("the app's versions", () => {
     const shown = await ebill({ EBILL_TOKEN: TOKEN }, "app", "versions", "--dir", "acme");
     assert.ok(!Array.from(shown.out).some((character) => character !== "\n" && isControl(character)));
     assert.ok(shown.out.includes("fix ]0;owned  this"));
+  });
+
+  test("app dev installs the folder's app in the sandbox and gives the link its server signs in with; no sandbox is said", async () => {
+    const installed = await ebill({ EBILL_TOKEN: TOKEN }, "app", "dev", "--dir", "acme", "--port", "4000");
+    assert.equal(installed.code, EXIT.ok, installed.err);
+    assert.match(installed.out, /Installed acme-subscriptions 1\.0\.0 in Acme \(Sandbox\), your sandbox/);
+    assert.match(installed.out, /https:\/\/acme\.example\/cb\?code=abc&state=xyz/);
+    assert.match(installed.out, /point a tunnel at port 4000/);
+    assert.ok(ebillServer.seen.includes("POST /developer/v1/apps/app-1/dev"));
+    ebillServer.sandbox = false;
+    const none = await ebill({ EBILL_TOKEN: TOKEN }, "app", "dev", "--dir", "acme");
+    assert.equal(none.code, EXIT.failed);
+    assert.match(none.err, /Make your sandbox in eBill's developer portal/);
   });
 
   test("a token eBill does not take is told, with its reference, and how to sign in again", async () => {

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import { setTimeout as wait } from "node:timers/promises";
 import { Command, CommanderError, InvalidArgumentError } from "commander";
-import { deploy, login, logout, release, status, versions, type Context } from "./commands.ts";
+import { deploy, dev, login, logout, release, status, versions, type Context } from "./commands.ts";
 import { INIT_FILES, InitConflictError, initApp } from "./init.ts";
 import { APP_FILE, LISTING_FILE, SKIPPED_CHECKS, validateApp, type Failure } from "./manifest.ts";
 
@@ -133,13 +133,10 @@ export function buildProgram(io: Io, setExit: (code: number) => void): Command {
 
   app
     .command("dev")
-    .description("Run your app against eBill while you develop it.")
+    .description("Install the folder's app, checked but not reviewed, in your sandbox organisation, and sign its server in.")
     .option("--dir <dir>", "app folder", ".")
-    .option("--port <port>", "port your local server listens on", parsePort, 3000)
-    .action(() => {
-      io.stderr('"ebill app dev" needs your sandbox organisation, which comes with eBill\'s developer portal. Nothing was sent.\n');
-      setExit(EXIT.unavailable);
-    });
+    .option("--port <port>", "port your local server listens on, for the tunnel eBill reaches it through", parsePort, 3000)
+    .action((options: { dir: string; port: number }) => dev(context, folder(options.dir), options.port));
 
   app
     .command("deploy")
