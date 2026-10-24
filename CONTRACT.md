@@ -22,6 +22,19 @@ grant_type=authorization_code&code=...&redirect_uri=...&client_id=...&client_sec
 
 `redirect_uri` must be the URL the user came back to, exactly as listed in `ebill.app.toml`. A code works once.
 
+### Starting the install from your app, and `state`
+
+To connect a signed-in user of your app to their eBill organisation, send their browser to
+`https://app.ebilladdress.com/marketplace/apps/<handle>/install?state=<value>`. eBill hands `state` back unchanged with the code. It must be
+1 to 500 printable ASCII characters.
+
+- Make `state` a random value you keep in that user's session (a cookie, for example), and check it matches when the browser comes back.
+  Refuse a callback whose `state` you didn't give to this browser.
+- Link the eBill organisation to the user your session says is signed in, never to a user named by `state`. Otherwise someone could start
+  an install from their own account and send the link to an organisation's owner, joining that organisation to their account.
+- When the install began in eBill instead (from the Marketplace), eBill makes up its own random `state`. Your app has no session for it:
+  sign the person in to your app first, then link the organisation to them.
+
 4. eBill answers:
 
 ```json

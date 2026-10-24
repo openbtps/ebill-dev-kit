@@ -50,7 +50,9 @@ function send(res: ServerResponse, status: number, body: string): void {
 }
 
 async function handleCallback(url: URL, res: ServerResponse): Promise<void> {
-  // eBill also sends `state`. If your app started the install itself, check it matches the value you sent.
+  // eBill also sends `state`. If your app started the install itself, check it matches the value you kept in this browser's
+  // session, and link the organisation to the user that session is signed in as, never to one named by `state`
+  // (CONTRACT.md, "Starting the install from your app").
   const code = url.searchParams.get("code");
   if (!code) {
     send(res, 400, "Missing code.");
