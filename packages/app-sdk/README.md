@@ -116,6 +116,61 @@ try {
 
 `signWebhook({ rawBody, secret, timestamp })` builds a signature header the way eBill does, for your own tests.
 
+## Browser sync (own-key users)
+
+Some eBill addresses keep their own key: eBill cannot open their bills, so it cannot give them to your app through the API. The person can
+share them with you themselves, in eBill's sync window: a small window at eBill's own address that your page opens. There they see what
+you asked for and which bills it found, and choose to share them. Their browser seals each bill to your public key and hands them to your
+page. eBill never sees the bills or their key, and you never see their key.
+
+1. Make a key pair and declare the public half in `ebill.app.toml`. Keep the private half on your server only.
+
+   ```sh
+   openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out sync-private.pem
+   openssl pkey -in sync-private.pem -pubout -out sync-public.pem
+   ```
+
+   ```toml
+   [sync]
+   browser = true
+   public_key = """
+   -----BEGIN PUBLIC KEY-----
+   ...
+   -----END PUBLIC KEY-----
+   """
+   ```
+
+   Installing your app then asks to "Read the bills you choose to share with it from your browser" (`documents:received:sync`).
+
+2. Open the window from a click, on a page at your redirect URL's origin. eBill hands the bills to that origin only.
+
+   ```ts
+   import { SyncCancelledError, openSyncWindow } from "@ebilladdress/app-sdk/browser";
+
+   button.onclick = async () => {
+     try {
+       const { documents } = await openSyncWindow({ app: "acme-books", kinds: ["invoice"], from: "2026-10-01", min: "300", currency: "AUD" });
+       await fetch("/ebill/synced", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(documents) });
+     } catch (error) {
+       if (!(error instanceof SyncCancelledError)) throw error;
+     }
+   };
+   ```
+
+3. Open them on your server.
+
+   ```ts
+   import { openSyncedDocument } from "@ebilladdress/app-sdk";
+
+   for (const { sealed } of documents) {
+     const bill = openSyncedDocument(process.env.EBILL_SYNC_PRIVATE_KEY, sealed);
+     // bill.document: the BTPS document as its sender signed it.
+   }
+   ```
+
+eBill's window never asks a person for their key: it uses one they already opened in eBill on that device. Never ask a person for their
+eBill key yourself, on your pages or anywhere else. eBill's review rejects an app that does.
+
 ## Scopes and topics
 
 `SCOPES` maps each scope to the label users see; `TOPICS` maps each webhook topic to the scope it needs. `isScope`, `isTopic` and `requiredScope`

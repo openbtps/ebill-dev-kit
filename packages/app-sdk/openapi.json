@@ -47,6 +47,10 @@
     {
       "scope": "payments:write",
       "label": "Record payments and answer them in your name"
+    },
+    {
+      "scope": "documents:received:sync",
+      "label": "Read the bills you choose to share with it from your browser"
     }
   ],
   "x-ebill-webhook-topics": [
@@ -1698,7 +1702,8 @@
           "receivedAt",
           "failedAt",
           "failureCode",
-          "retrying"
+          "retrying",
+          "sample"
         ],
         "properties": {
           "id": {
@@ -1862,6 +1867,10 @@
           },
           "retrying": {
             "type": "boolean"
+          },
+          "sample": {
+            "type": "boolean",
+            "description": "A sample eBill put in a sandbox for your app to read. Nobody sent it. Only ever true in a sandbox."
           }
         }
       },
@@ -2112,7 +2121,8 @@
                 "files:read",
                 "contacts:read",
                 "payments:read",
-                "payments:write"
+                "payments:write",
+                "documents:received:sync"
               ]
             }
           },
@@ -2514,7 +2524,8 @@
                 "files:read",
                 "contacts:read",
                 "payments:read",
-                "payments:write"
+                "payments:write",
+                "documents:received:sync"
               ]
             }
           }

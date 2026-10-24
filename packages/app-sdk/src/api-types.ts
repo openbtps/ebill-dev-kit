@@ -892,6 +892,8 @@ export interface components {
             failedAt: string | null;
             failureCode: string | null;
             retrying: boolean;
+            /** @description A sample eBill put in a sandbox for your app to read. Nobody sent it. Only ever true in a sandbox. */
+            sample: boolean;
         };
         DocumentLineDiscountInput: {
             /** @description What comes off before tax; the line's other amounts are already net of it. A PERCENT's is checked. */
@@ -950,7 +952,7 @@ export interface components {
                 handle: string;
                 version: string;
             };
-            scopes: ("drafts:write" | "documents:send" | "documents:read" | "documents:received:read" | "files:read" | "contacts:read" | "payments:read" | "payments:write")[];
+            scopes: ("drafts:write" | "documents:send" | "documents:read" | "documents:received:read" | "files:read" | "contacts:read" | "payments:read" | "payments:write" | "documents:received:sync")[];
             /** Format: date-time */
             installedAt: string;
         };
@@ -1050,7 +1052,7 @@ export interface components {
             expires_in: number;
             /** Format: uuid */
             installation_id: string;
-            scopes: ("drafts:write" | "documents:send" | "documents:read" | "documents:received:read" | "files:read" | "contacts:read" | "payments:read" | "payments:write")[];
+            scopes: ("drafts:write" | "documents:send" | "documents:read" | "documents:received:read" | "files:read" | "contacts:read" | "payments:read" | "payments:write" | "documents:received:sync")[];
         };
         TokenError: {
             /** @enum {string} */

@@ -15,6 +15,7 @@ test("scopes are exactly the published list", () => {
     "contacts:read",
     "payments:read",
     "payments:write",
+    "documents:received:sync",
   ]);
   assert.equal(SCOPES["documents:send"], "Send documents in your name");
   assert.ok(isScope("files:read"));

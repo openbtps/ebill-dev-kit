@@ -8,9 +8,14 @@ export const SCOPES = {
   "contacts:read": "See your contacts",
   "payments:read": "See payments on your invoices",
   "payments:write": "Record payments and answer them in your name",
+  // Granted by `[sync] browser = true` in ebill.app.toml, never listed in [access]: the bills a person shares in eBill's sync window.
+  "documents:received:sync": "Read the bills you choose to share with it from your browser",
 } as const;
 
 export type Scope = keyof typeof SCOPES;
+
+/** The scope `[sync] browser = true` grants. */
+export const SYNC_SCOPE = "documents:received:sync" satisfies Scope;
 
 export const SCOPE_NAMES = Object.keys(SCOPES) as readonly Scope[];
 
