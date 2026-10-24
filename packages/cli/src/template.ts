@@ -42,21 +42,30 @@ export const MAX_TEMPLATE_BYTES = 16 * 1024;
 
 const COLOUR = /^#[0-9a-f]{6}$/;
 
-/** Printable text and line breaks, and no angle brackets: words, never markup. */
+// Characters that make text read differently from how it is stored: direction overrides and isolates, zero-width ones.
+const HIDDEN = new Set([0x200b, 0x200c, 0x200d, 0x200e, 0x200f, 0x202a, 0x202b, 0x202c, 0x202d, 0x202e, 0x2066, 0x2067, 0x2068, 0x2069, 0xfeff]);
+
+/** Printable text and line breaks, and no angle brackets or hidden characters: words, never markup. */
 function isWords(text: string): boolean {
   for (const char of text) {
     const code = char.codePointAt(0) ?? 0;
-    if ((code < 0x20 && char !== "\n") || code === 0x7f || char === "<" || char === ">") return false;
+    if ((code < 0x20 && char !== "\n") || code === 0x7f || char === "<" || char === ">" || HIDDEN.has(code)) return false;
   }
   return true;
 }
+
+// A template's words are printed on every sender's documents drawn with it, so they may not say where to pay or who
+// to contact: no run of four or more digits (an account, BSB or phone number), no web, email or BTPS address.
+const PAYMENT_DETAIL = /\d(?:[\s.-]?\d){3}|https?:|www\.|\S@\S|\S\$\S/i;
+const isNotPaymentDetail = (text: string): boolean => !PAYMENT_DETAIL.test(text);
 
 const words = (min: number, max: number) =>
   z
     .string()
     .min(min, { message: `must be ${String(min)} to ${String(max)} characters` })
     .max(max, { message: `must be ${String(min)} to ${String(max)} characters` })
-    .refine(isWords, { message: "must be plain text: no markup and no control characters" });
+    .refine(isWords, { message: "must be plain text: no markup, control or hidden characters" })
+    .refine(isNotPaymentDetail, { message: "must not hold numbers of four or more digits, or a web, email or BTPS address" });
 const colour = z.string().regex(COLOUR, { message: 'must be a colour like "#1a2b3c", in lower case' });
 
 const templateSchema = z.strictObject({
@@ -162,7 +171,7 @@ function crossChecks(template: Template): Failure[] {
 
 /** What is wrong with `raw` as a template.json; none when it is one eBill draws. */
 export function validateTemplate(raw: unknown): Failure[] {
-  if (JSON.stringify(raw ?? null).length > MAX_TEMPLATE_BYTES) {
+  if (new TextEncoder().encode(JSON.stringify(raw ?? null)).length > MAX_TEMPLATE_BYTES) {
     return [{ check: "template-size", path: TEMPLATE_FILE, reason: `must be at most ${String(MAX_TEMPLATE_BYTES)} bytes as JSON` }];
   }
   const result = templateSchema.safeParse(raw, { reportInput: true });
