@@ -207,6 +207,30 @@ Unknown keys are refused, so a typo does not pass silently.
 | `support_url`, `privacy_policy_url`, `terms_url` | https                                                                          |
 | `developer_name`                                 | 1 to 80 characters                                                             |
 
+### `template.json` (template apps)
+
+How a document looks, never what it says. eBill draws every document from it on the reader's device. No key can change an amount, a date,
+who a document is from or to, payment details or the verified badge; no key hides a signed field, names anything to fetch, or runs.
+Unknown keys are refused.
+
+| Key                                          | Rule                                                                         |
+| -------------------------------------------- | ---------------------------------------------------------------------------- |
+| `format`                                     | `1`                                                                          |
+| `kinds`                                      | `invoice` and or `receipt`                                                   |
+| `page.font`                                  | `geist`, `source-serif-4`, `atkinson-hyperlegible-next` or `geist-mono`      |
+| `page.size`, `page.density`                  | `small`, `normal` or `large`; `compact` or `comfortable`                     |
+| `page.background`, `text`, `muted`, `accent` | `#rrggbb`; text and muted contrast at least 4.5:1, the accent at least 3:1   |
+| `logo.position`, `logo.size`                 | `top-left`, `top-center`, `top-right` or `none`; `small`, `medium`, `large`  |
+| `sections`                                   | their order; each once; all but `terms` and `footer` required                |
+| `labels`                                     | your words for the labels below: 1 to 40 characters of plain text            |
+| `lines.style`, `lines.header`                | `plain`, `striped` or `boxed`; `plain` or `accent`                           |
+| `totals.style`                               | `plain`, `boxed` or `accent`                                                 |
+| `text.terms`, `text.footer` (optional)       | plain text, up to 2000 and 300 characters; required when `sections` has them |
+
+Sections: `header`, `parties`, `details`, `lines`, `totals`, `payment`, `notes`, `terms`, `footer`. Labels: `title`, `from`, `to`,
+`number`, `issued`, `due`, `description`, `quantity`, `unitPrice`, `tax`, `lineTotal`, `subtotal`, `taxTotal`, `total`, `amountDue`,
+`paid`, `notes`, `payment`. The logo is always the sender's own. At most 16 KB; `ebill app init --template` writes one that passes.
+
 ### What the CLI cannot check
 
 Whether links open, whether images can be fetched, and image sizes need the network. eBill checks them when you deploy; `ebill app validate` says

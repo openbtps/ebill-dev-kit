@@ -74,6 +74,19 @@ export type DevInstalled =
       installation: { installationId: string; redirectUrl: string };
     };
 
+/** An app folder's files, as parsed: a template app's template.json too. */
+export interface AppFiles {
+  manifest: unknown;
+  listing: unknown;
+  template?: unknown;
+}
+
+const bodyOf = (files: AppFiles): Record<string, unknown> => ({
+  manifest: files.manifest,
+  listing: files.listing,
+  ...(files.template === undefined ? {} : { template: files.template }),
+});
+
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 const text = (value: unknown, fallback = ""): string => (typeof value === "string" ? value : fallback);
 
@@ -161,8 +174,9 @@ export class DeveloperApi {
     return Array.isArray(body.data) ? (body.data as DeveloperApp[]) : [];
   }
 
-  async push(appId: string, manifest: unknown, listing: unknown): Promise<Pushed> {
-    return (await this.call(`/developer/v1/apps/${encodeURIComponent(appId)}/versions`, { method: "POST", body: { manifest, listing } })) as unknown as Pushed;
+  /** `files.template`: a template app's template.json; none for an integration. */
+  async push(appId: string, files: AppFiles): Promise<Pushed> {
+    return (await this.call(`/developer/v1/apps/${encodeURIComponent(appId)}/versions`, { method: "POST", body: bodyOf(files) })) as unknown as Pushed;
   }
 
   async release(versionId: string): Promise<Released> {
@@ -170,7 +184,7 @@ export class DeveloperApi {
   }
 
   /** The app's dev version, checked but not reviewed, installed in the organisation's sandbox (`ebill app dev`). */
-  async dev(appId: string, manifest: unknown, listing: unknown): Promise<DevInstalled> {
-    return (await this.call(`/developer/v1/apps/${encodeURIComponent(appId)}/dev`, { method: "POST", body: { manifest, listing } })) as unknown as DevInstalled;
+  async dev(appId: string, files: AppFiles): Promise<DevInstalled> {
+    return (await this.call(`/developer/v1/apps/${encodeURIComponent(appId)}/dev`, { method: "POST", body: bodyOf(files) })) as unknown as DevInstalled;
   }
 }

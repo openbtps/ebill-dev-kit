@@ -14,7 +14,8 @@ Requires Node.js 22.12 or later.
 | Command                                    | What it does                                                                                                |
 | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
 | `ebill app init [dir] [--handle <handle>]` | Writes `ebill.app.toml`, `listing.toml`, `server.ts` and `README.md`. Never overwrites a file.              |
-| `ebill app validate [dir] [--json]`        | Checks both TOML files and lists every problem                                                              |
+| `ebill app init [dir] --template`          | A template app: writes `ebill.app.toml`, `listing.toml`, `template.json` and `README.md`                    |
+| `ebill app validate [dir] [--json]`        | Checks the app's files (and a template app's `template.json`) and lists every problem                       |
 | `ebill login`                              | Signs in as your organisation: an owner or admin approves the code it shows in eBill                        |
 | `ebill logout`                             | Forgets the sign-in kept on this computer                                                                   |
 | `ebill app deploy [--version <x.y.z>]`     | Checks your files locally, then pushes the version in `ebill.app.toml` through eBill's checks and to review |
