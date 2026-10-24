@@ -116,15 +116,10 @@ describe("ebill app validate", () => {
 });
 
 describe("commands that talk to eBill, before any sign-in (commands.test.ts has them signed in)", () => {
-  test("app dev waits for the sandbox organisation, and says so", async () => {
-    const result = await ebill("app", "dev", "--port", "4000");
-    assert.equal(result.code, EXIT.unavailable);
-    assert.match(result.err, /sandbox organisation/);
-  });
-
   test("each needs a sign-in, and says how to get one", async () => {
     await initApp(join(root, "unsigned"));
     for (const argv of [
+      ["app", "dev", "--dir", "unsigned"],
       ["app", "versions", "--dir", "unsigned"],
       ["app", "release", "1.0.0", "--dir", "unsigned"],
       ["app", "status", "--dir", "unsigned"],

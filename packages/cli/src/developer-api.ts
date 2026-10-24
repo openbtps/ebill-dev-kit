@@ -63,6 +63,17 @@ export interface Released {
   waiting: number;
 }
 
+/** A dev push: refused with every failure, or installed in the sandbox, with where the app's server signs in. */
+export type DevInstalled =
+  | { state: "rejected"; failures: CheckFailure[] }
+  | {
+      state: "dev";
+      failures: [];
+      version: AppVersion;
+      sandbox: { organisationId: string; name: string };
+      installation: { installationId: string; redirectUrl: string };
+    };
+
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 const text = (value: unknown, fallback = ""): string => (typeof value === "string" ? value : fallback);
 
@@ -156,5 +167,10 @@ export class DeveloperApi {
 
   async release(versionId: string): Promise<Released> {
     return (await this.call(`/developer/v1/versions/${encodeURIComponent(versionId)}/release`, { method: "POST", body: {} })) as unknown as Released;
+  }
+
+  /** The app's dev version, checked but not reviewed, installed in the organisation's sandbox (`ebill app dev`). */
+  async dev(appId: string, manifest: unknown, listing: unknown): Promise<DevInstalled> {
+    return (await this.call(`/developer/v1/apps/${encodeURIComponent(appId)}/dev`, { method: "POST", body: { manifest, listing } })) as unknown as DevInstalled;
   }
 }

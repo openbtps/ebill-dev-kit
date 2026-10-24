@@ -22,7 +22,7 @@ Requires Node.js 22.12 or later.
 | `ebill app release <x.y.z>`                | Releases a version eBill approved                                                                           |
 | `ebill app rollback <x.y.z>`               | Releases again a version that was released before                                                           |
 | `ebill app status`                         | Shows the live version and what waits for review                                                            |
-| `ebill app dev [--port <port>]`            | Runs your app against eBill while you develop. Not available yet: it exits with code 2                      |
+| `ebill app dev [--port <port>]`            | Installs the folder's app, checked but not reviewed, in your sandbox organisation, and signs its server in  |
 | `ebill --version`, `ebill help [command]`  |                                                                                                             |
 
 The app commands take `--dir <dir>` (default: the current folder) and find the app by the `client_id` in its `ebill.app.toml`, among your
@@ -30,6 +30,17 @@ organisation's apps. `deploy --version` is a safety check: it refuses unless the
 
 A release moves every installation to the new version, except those whose organisation has not granted the new version's scopes. They stay
 on the version they have until the organisation agrees.
+
+## Developing against your sandbox
+
+Your organisation's owners and admins make its sandbox in eBill's developer portal: a second organisation that reaches no real address.
+`ebill app dev` then puts the folder's files through eBill's checks (all but the version going up), as your app's one dev version, and
+installs it in the sandbox in place of the one before. It prints a link with a code: open it and your server trades the code at
+`/oauth/token`, as for any install, for tokens that act in the sandbox alone.
+
+eBill reaches your server at the https URLs in `ebill.app.toml`. On your own computer, point a tunnel (cloudflared, for one) at the port
+your server listens on and use the tunnel's https URL there. Run `ebill app dev` again whenever you change the files. The dev version is
+never reviewed, never released and never installed anywhere but your sandbox.
 
 ## Signing in
 
@@ -63,7 +74,7 @@ The full rules are in [CONTRACT.md](https://github.com/openbtps/ebill-dev-kit/bl
 
 - `0`: done
 - `1`: something to fix, or a mistake in the command
-- `2`: needs something eBill does not offer yet (today, only `ebill app dev`)
+- `2`: needs something eBill does not offer yet (no command does today)
 
 ## Licence
 

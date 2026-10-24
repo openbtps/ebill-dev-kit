@@ -164,7 +164,34 @@ export async function deploy(context: Context, dir: string, version: string | un
   });
 }
 
+/**
+ * `ebill app dev`: the folder's files, through eBill's checks (all but the version going up), as the app's one dev
+ * version, installed in the organisation's sandbox in place of the one before. eBill reaches the app's server at the
+ * https URLs in ebill.app.toml, so on a laptop those are a tunnel's (cloudflared, for one) to `port`.
+ */
+export async function dev(context: Context, dir: string, port: number): Promise<void> {
+  const api = await signedIn(context);
+  if (!api) return;
+  await talking(context, async () => {
+    const found = await appIn(context, api, dir);
+    if (!found) return;
+    const installed = await api.dev(found.app.id, found.manifest, found.listing);
+    if (installed.state === "rejected") {
+      context.stderr(`eBill's checks refused ${found.app.handle}:\n\n${formatCheckFailures(installed.failures)}\nFix these and run "ebill app dev" again.\n`);
+      context.fail();
+      return;
+    }
+    context.stdout(
+      `Installed ${found.app.handle} ${plain(installed.version.version)} in ${plain(installed.sandbox.name)}, your sandbox: it reaches no real address.\n\n` +
+        `Sign your app's server in to it: open this link, which carries a code your server trades at /oauth/token.\n\n  ${plain(installed.installation.redirectUrl)}\n\n` +
+        `eBill reaches your server at the URLs in ${APP_FILE}. On this computer, point a tunnel at port ${String(port)} and use its https URL there.\n` +
+        `Changed something? Run "ebill app dev" again: the dev version and its installation are replaced.\n`,
+    );
+  });
+}
+
 const STATES: Record<string, string> = {
+  dev: "dev, in your sandbox",
   review_pending: "waiting for review",
   changes_requested: "changes requested",
   approved: "approved, not released",

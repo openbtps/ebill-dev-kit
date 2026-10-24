@@ -251,14 +251,18 @@ still an owner or admin of the organisation: after that it is refused with 403 `
 
 Each call sends `Authorization: Bearer ebdt_...`. A missing, expired or revoked token is 401 `unauthorized`.
 
-| Call                                      | Body                    | Answer                                                             |
-| ----------------------------------------- | ----------------------- | ------------------------------------------------------------------ |
-| `GET /developer/v1/apps`                  |                         | `{ data: [{ id, handle, kind, clientId, delistedAt, versions }] }` |
-| `POST /developer/v1/apps/:id/versions`    | `{ manifest, listing }` | `{ state: "rejected" \| "review_pending", failures, version? }`    |
-| `POST /developer/v1/versions/:id/release` | `{}`                    | `{ version, moved, waiting }`                                      |
+| Call                                      | Body                    | Answer                                                                     |
+| ----------------------------------------- | ----------------------- | -------------------------------------------------------------------------- |
+| `GET /developer/v1/apps`                  |                         | `{ data: [{ id, handle, kind, clientId, delistedAt, versions }] }`         |
+| `POST /developer/v1/apps/:id/versions`    | `{ manifest, listing }` | `{ state: "rejected" \| "review_pending", failures, version? }`            |
+| `POST /developer/v1/versions/:id/release` | `{}`                    | `{ version, moved, waiting }`                                              |
+| `POST /developer/v1/apps/:id/dev`         | `{ manifest, listing }` | `{ state: "rejected" \| "dev", failures, version, sandbox, installation }` |
 
 - **versions:** each is `{ id, appId, version, state, submittedAt, reviewNote }`, newest first. `state` is one of `review_pending`,
-  `changes_requested`, `approved`, `released`, `superseded` or `retired`.
+  `changes_requested`, `approved`, `released`, `superseded`, `retired`, or `dev` (the app's one dev version, in the sandbox only).
+- **dev:** the files go through every check but the version going up, as the app's one dev version (replaced each time, its number
+  free), installed in the organisation's sandbox in place of the one before. `installation.redirectUrl` is the app's redirect URL with a
+  `code` the app's server trades at `/oauth/token`, for tokens that act in the sandbox alone. Without a sandbox it is 409 `no_sandbox`.
 - **push:** `manifest` and `listing` are `ebill.app.toml` and `listing.toml` parsed to JSON. eBill runs the same checks as the CLI, plus the
   ones that need the network, and a version must be higher than the app's last. `failures` has the `{ check, path, reason }` shape that
   `ebill app validate --json` prints. A rejected push stores nothing.
