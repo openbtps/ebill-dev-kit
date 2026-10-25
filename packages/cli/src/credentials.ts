@@ -52,6 +52,16 @@ export function apiUrlOf(place: Place): string {
   return url;
 }
 
+/** Whether EBILL_API_URL is an eBill on this computer (http://localhost): the local stack, whose app under test is http. */
+export function isLocalApi(place: Place): boolean {
+  try {
+    const url = new URL(apiUrlOf(place));
+    return url.protocol === "http:" && LOCAL_HOSTS.has(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * The sign-in to use: EBILL_TOKEN (for CI, where nobody can approve a code), else the one `ebill login` saved for
  * this API. Undefined when there is neither.

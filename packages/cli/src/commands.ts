@@ -1,7 +1,7 @@
 // The commands that talk to eBill: signing in (the OAuth 2.0 device grant, RFC 8628), and pushing, listing and
 // releasing the app in a folder, found in the organisation's apps by the client id in its ebill.app.toml.
 import { hostname } from "node:os";
-import { ApiUrlError, apiUrlOf, forgetCredentials, readCredentials, saveCredentials, credentialsFile, type Place } from "./credentials.ts";
+import { ApiUrlError, apiUrlOf, forgetCredentials, isLocalApi, readCredentials, saveCredentials, credentialsFile, type Place } from "./credentials.ts";
 import { DeveloperApi, DeveloperApiError, type AppFiles, type AppVersion, type CheckFailure, type DeveloperApp } from "./developer-api.ts";
 import { APP_FILE, loadAppFiles } from "./manifest.ts";
 
@@ -118,7 +118,7 @@ export async function logout(context: Context): Promise<void> {
 
 /** The app the folder's ebill.app.toml is, in the organisation's apps; told and undefined when it is not one. */
 async function appIn(context: Context, api: DeveloperApi, dir: string): Promise<({ app: DeveloperApp } & AppFiles) | undefined> {
-  const files = await loadAppFiles(dir);
+  const files = await loadAppFiles(dir, { localHttp: isLocalApi(context.place) });
   if ("failures" in files) {
     context.stderr(`${String(files.failures.length)} problem${files.failures.length === 1 ? "" : "s"} to fix first:\n\n${formatCheckFailures(files.failures)}`);
     context.fail();
@@ -184,7 +184,9 @@ export async function dev(context: Context, dir: string, port: number): Promise<
     context.stdout(
       `Installed ${found.app.handle} ${plain(installed.version.version)} in ${plain(installed.sandbox.name)}, your sandbox: it reaches no real address.\n\n` +
         `Sign your app's server in to it: open this link, which carries a code your server trades at /oauth/token.\n\n  ${plain(installed.installation.redirectUrl)}\n\n` +
-        `eBill reaches your server at the URLs in ${APP_FILE}. On this computer, point a tunnel at port ${String(port)} and use its https URL there.\n` +
+        (isLocalApi(context.place)
+          ? `The eBill on this computer reaches your server at the URLs in ${APP_FILE}, at the local addresses it lets through.\n`
+          : `eBill reaches your server at the URLs in ${APP_FILE}. On this computer, point a tunnel at port ${String(port)} and use its https URL there.\n`) +
         `Changed something? Run "ebill app dev" again: the dev version and its installation are replaced.\n`,
     );
   });
