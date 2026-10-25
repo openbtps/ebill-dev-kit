@@ -380,24 +380,63 @@ async function loadTemplate(dir: string, manifest: unknown): Promise<{ raw: unkn
   return failures.length > 0 ? { failures } : { raw };
 }
 
+export interface CheckOptions {
+  /**
+   * Checked for an eBill on this computer (EBILL_API_URL on http://localhost): an http address on this computer passes
+   * "https only", as that eBill lets its own app under test through. Any other eBill refuses it when you deploy.
+   */
+  localHttp?: boolean;
+}
+
+const THIS_COMPUTER = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/** The value a failure's path ("ebill.app.toml:auth.redirect_urls[0]") names in the files read. */
+function valueAt(files: Readonly<Record<string, unknown>>, path: string): unknown {
+  const split = path.indexOf(":");
+  if (split < 0) return undefined;
+  let value: unknown = files[path.slice(0, split)];
+  for (const [, key, index] of path.slice(split + 1).matchAll(/([^.[\]]+)|\[(\d+)\]/g)) {
+    if (value === null || typeof value !== "object") return undefined;
+    value = (value as Record<string, unknown>)[key ?? String(index)];
+  }
+  return value;
+}
+
+/** `failures`, less each "https only" one about an http address on this computer when `options.localHttp`. */
+function withLocalHttp(failures: Failure[], manifest: unknown, listing: unknown, options: CheckOptions): Failure[] {
+  if (!options.localHttp) return failures;
+  const files = { [APP_FILE]: manifest, [LISTING_FILE]: listing };
+  return failures.filter((failure) => {
+    const value = failure.check === "https-url" ? valueAt(files, failure.path) : undefined;
+    if (typeof value !== "string" || !URL.canParse(value)) return true;
+    const url = new URL(value);
+    return !(url.protocol === "http:" && THIS_COMPUTER.has(url.hostname));
+  });
+}
+
 /** The files as parsed, ready to send: what `ebill app deploy` pushes once they pass every local check. */
-export async function loadAppFiles(dir: string): Promise<{ manifest: unknown; listing: unknown; template?: unknown } | { failures: Failure[] }> {
+export async function loadAppFiles(
+  dir: string,
+  options: CheckOptions = {},
+): Promise<{ manifest: unknown; listing: unknown; template?: unknown } | { failures: Failure[] }> {
   const [app, listing] = await Promise.all([load(dir, APP_FILE), load(dir, LISTING_FILE)]);
   if ("failure" in app || "failure" in listing)
     return { failures: [...("failure" in app ? [app.failure] : []), ...("failure" in listing ? [listing.failure] : [])] };
   const template = await loadTemplate(dir, app.raw);
-  const failures = [...validateAppManifest(app.raw), ...validateListing(listing.raw), ...(template && "failures" in template ? template.failures : [])];
+  const checked = [...validateAppManifest(app.raw), ...validateListing(listing.raw), ...(template && "failures" in template ? template.failures : [])];
+  const failures = withLocalHttp(checked, app.raw, listing.raw, options);
   if (failures.length > 0) return { failures };
   return { manifest: app.raw, listing: listing.raw, ...(template && "raw" in template ? { template: template.raw } : {}) };
 }
 
 /** Every local check on an app directory. An empty list means it is ready to deploy, as far as can be told offline. */
-export async function validateApp(dir: string): Promise<Failure[]> {
+export async function validateApp(dir: string, options: CheckOptions = {}): Promise<Failure[]> {
   const [app, listing] = await Promise.all([load(dir, APP_FILE), load(dir, LISTING_FILE)]);
   const template = "failure" in app ? undefined : await loadTemplate(dir, app.raw);
-  return [
+  const checked = [
     ...("failure" in app ? [app.failure] : validateAppManifest(app.raw)),
     ...("failure" in listing ? [listing.failure] : validateListing(listing.raw)),
     ...(template && "failures" in template ? template.failures : []),
   ];
+  return withLocalHttp(checked, "failure" in app ? undefined : app.raw, "failure" in listing ? undefined : listing.raw, options);
 }

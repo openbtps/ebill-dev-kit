@@ -51,6 +51,8 @@ organisation's owners and admins can approve. The CLI then keeps a developer tok
 
 In CI, set `EBILL_TOKEN` to a developer token instead. It takes the place of the saved sign-in. `EBILL_API_URL` points the CLI at another eBill
 (default `https://api.ebilladdress.com`). It must be https, except for `localhost`. A saved sign-in is used only with the API it was made for.
+Pointed at an eBill on `http://localhost`, the CLI also takes `http://localhost` addresses in `ebill.app.toml` and `listing.toml`, for
+that eBill's own app under test; any other eBill refuses them when you deploy.
 
 ## Validation
 

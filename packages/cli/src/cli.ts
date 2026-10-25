@@ -3,6 +3,7 @@ import { relative, resolve } from "node:path";
 import { setTimeout as wait } from "node:timers/promises";
 import { Command, CommanderError, InvalidArgumentError } from "commander";
 import { deploy, dev, login, logout, release, status, versions, type Context } from "./commands.ts";
+import { isLocalApi } from "./credentials.ts";
 import { INIT_FILES, InitConflictError, initApp } from "./init.ts";
 import { APP_FILE, LISTING_FILE, SKIPPED_CHECKS, validateApp, type Failure } from "./manifest.ts";
 
@@ -70,8 +71,9 @@ export function buildProgram(io: Io, setExit: (code: number) => void): Command {
   };
   const folder = (dir: string): string => resolve(io.cwd, dir);
 
+  const checkOptions = { localHttp: isLocalApi(context.place) };
   const runValidation = async (dir: string): Promise<boolean> => {
-    const failures = await validateApp(dir);
+    const failures = await validateApp(dir, checkOptions);
     const where = relative(io.cwd, dir) || ".";
     if (failures.length === 0) {
       io.stdout(`${APP_FILE} and ${LISTING_FILE} in ${where}: no problems found.\n`);
@@ -124,7 +126,7 @@ export function buildProgram(io: Io, setExit: (code: number) => void): Command {
     .action(async (dir: string, options: { json?: boolean }) => {
       const target = folder(dir);
       if (options.json) {
-        const failures = await validateApp(target);
+        const failures = await validateApp(target, checkOptions);
         io.stdout(`${JSON.stringify({ ok: failures.length === 0, failures, skipped: SKIPPED_CHECKS }, null, 2)}\n`);
         if (failures.length > 0) setExit(EXIT.failed);
         return;
