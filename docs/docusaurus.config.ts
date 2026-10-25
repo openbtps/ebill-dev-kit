@@ -65,7 +65,24 @@ const config: Config = {
     ],
     "docusaurus-plugin-sass",
   ],
-  themes: ["docusaurus-theme-openapi-docs"],
+  themes: [
+    "docusaurus-theme-openapi-docs",
+    // Search with no outside service: the index is built with the site and searched in the browser.
+    [
+      "@easyops-cn/docusaurus-search-local",
+      {
+        docsRouteBasePath: "/",
+        indexBlog: false,
+        language: ["en"],
+        hashed: true,
+        highlightSearchTermsOnTargetPage: true,
+        explicitSearchResultPath: true,
+        // Searched from a guide, the guides come first; from the reference, the generated pages. Either can be widened.
+        searchContextByPaths: ["get-started", "concepts", "build", "publish", "reference"],
+        useAllContextsWithNoSearchContext: true,
+      },
+    ],
+  ],
   themeConfig: {
     navbar: {
       title: "eBillAddress developers",
