@@ -659,6 +659,8 @@ export interface components {
             issuedAt: string;
             /** @description Up to 100. A draft may have none; an invoice that is sent has at least one. */
             lineItems: components["schemas"]["DocumentLineItemInput"][];
+            /** @description A template's handle (documentTemplates): the draft is drawn with its newest release, resolved each time it is saved. None when left out. EBA_TEMPLATE_UNAVAILABLE for one not in the Marketplace; EBA_DOCUMENT_INVALID, TEMPLATE_KIND at template, for one that does not draw this kind. */
+            template?: string | null;
             /** @description 1 to 200 characters. */
             title: string;
             toAddress: string;
@@ -685,6 +687,8 @@ export interface components {
             issuedAt: string;
             /** @description Up to 100. A draft may have none; an invoice that is sent has at least one. */
             lineItems: components["schemas"]["DocumentLineItemInput"][];
+            /** @description A template's handle (documentTemplates): the draft is drawn with its newest release, resolved each time it is saved. None when left out. EBA_TEMPLATE_UNAVAILABLE for one not in the Marketplace; EBA_DOCUMENT_INVALID, TEMPLATE_KIND at template, for one that does not draw this kind. */
+            template?: string | null;
             /** @description 1 to 200 characters. */
             title: string;
             toAddress: string;
@@ -826,6 +830,8 @@ export interface components {
             payment: components["schemas"]["ReceiptPaymentInput"];
             /** @description Your invoice this receipt is for: one delivered to or received from the receipt's receiver. It is named on the receipt by its number, the address it was sent from and its signed artifact. EBA_DOCUMENT_RECEIPT_FOR_INVALID for any other. Left out on a change, the receipt names none. */
             receiptFor?: string | null;
+            /** @description A template's handle (documentTemplates): the draft is drawn with its newest release, resolved each time it is saved. None when left out. EBA_TEMPLATE_UNAVAILABLE for one not in the Marketplace; EBA_DOCUMENT_INVALID, TEMPLATE_KIND at template, for one that does not draw this kind. */
+            template?: string | null;
             /** @description 1 to 200 characters. */
             title: string;
             toAddress: string;
@@ -855,6 +861,8 @@ export interface components {
             payment: components["schemas"]["ReceiptPaymentInput"];
             /** @description Your invoice this receipt is for: one delivered to or received from the receipt's receiver. It is named on the receipt by its number, the address it was sent from and its signed artifact. EBA_DOCUMENT_RECEIPT_FOR_INVALID for any other. Left out on a change, the receipt names none. */
             receiptFor?: string | null;
+            /** @description A template's handle (documentTemplates): the draft is drawn with its newest release, resolved each time it is saved. None when left out. EBA_TEMPLATE_UNAVAILABLE for one not in the Marketplace; EBA_DOCUMENT_INVALID, TEMPLATE_KIND at template, for one that does not draw this kind. */
+            template?: string | null;
             /** @description 1 to 200 characters. */
             title: string;
             toAddress: string;

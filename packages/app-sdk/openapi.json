@@ -794,6 +794,17 @@
             },
             "description": "Up to 100. A draft may have none; an invoice that is sent has at least one."
           },
+          "template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A template's handle (documentTemplates): the draft is drawn with its newest release, resolved each time it is saved. None when left out. EBA_TEMPLATE_UNAVAILABLE for one not in the Marketplace; EBA_DOCUMENT_INVALID, TEMPLATE_KIND at template, for one that does not draw this kind."
+          },
           "title": {
             "type": "string",
             "description": "1 to 200 characters."
@@ -876,6 +887,17 @@
               "$ref": "#/components/schemas/DocumentLineItemInput"
             },
             "description": "Up to 100. A draft may have none; an invoice that is sent has at least one."
+          },
+          "template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A template's handle (documentTemplates): the draft is drawn with its newest release, resolved each time it is saved. None when left out. EBA_TEMPLATE_UNAVAILABLE for one not in the Marketplace; EBA_DOCUMENT_INVALID, TEMPLATE_KIND at template, for one that does not draw this kind."
           },
           "title": {
             "type": "string",
@@ -1540,6 +1562,17 @@
             ],
             "description": "Your invoice this receipt is for: one delivered to or received from the receipt's receiver. It is named on the receipt by its number, the address it was sent from and its signed artifact. EBA_DOCUMENT_RECEIPT_FOR_INVALID for any other. Left out on a change, the receipt names none."
           },
+          "template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A template's handle (documentTemplates): the draft is drawn with its newest release, resolved each time it is saved. None when left out. EBA_TEMPLATE_UNAVAILABLE for one not in the Marketplace; EBA_DOCUMENT_INVALID, TEMPLATE_KIND at template, for one that does not draw this kind."
+          },
           "title": {
             "type": "string",
             "description": "1 to 200 characters."
@@ -1644,6 +1677,17 @@
               }
             ],
             "description": "Your invoice this receipt is for: one delivered to or received from the receipt's receiver. It is named on the receipt by its number, the address it was sent from and its signed artifact. EBA_DOCUMENT_RECEIPT_FOR_INVALID for any other. Left out on a change, the receipt names none."
+          },
+          "template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A template's handle (documentTemplates): the draft is drawn with its newest release, resolved each time it is saved. None when left out. EBA_TEMPLATE_UNAVAILABLE for one not in the Marketplace; EBA_DOCUMENT_INVALID, TEMPLATE_KIND at template, for one that does not draw this kind."
           },
           "title": {
             "type": "string",
