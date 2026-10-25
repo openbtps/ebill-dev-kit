@@ -341,9 +341,22 @@ function syncChecks(raw: unknown): Failure[] {
   return failures;
 }
 
+/** A template reads nothing and is told nothing: no scopes, no webhooks, no browser sync. eBill refuses one that asks. */
+function templateChecks(raw: unknown): Failure[] {
+  if (at(raw, "app", "kind") !== "template") return [];
+  const failure = (path: string[], reason: string): Failure => ({ check: "template-access", path: formatPath(APP_FILE, path), reason });
+  const topics = at(raw, "webhooks", "topics");
+  return [
+    ...(strings(at(raw, "access", "scopes")).length > 0 ? [failure(["access", "scopes"], "must be empty: a template reads nothing")] : []),
+    ...(at(raw, "webhooks", "url") === undefined ? [] : [failure(["webhooks", "url"], "must not be set: a template is sent no webhooks")]),
+    ...(Array.isArray(topics) && topics.length > 0 ? [failure(["webhooks", "topics"], "must be empty: a template is sent no webhooks")] : []),
+    ...(at(raw, "sync", "browser") === true ? [failure(["sync", "browser"], "must be false: a template has no browser sync")] : []),
+  ];
+}
+
 export function validateAppManifest(raw: unknown): Failure[] {
   const result = appSchema.safeParse(raw, { reportInput: true });
-  return [...(result.success ? [] : fromZod(APP_FILE, result.error)), ...crossChecks(raw), ...syncChecks(raw)];
+  return [...(result.success ? [] : fromZod(APP_FILE, result.error)), ...crossChecks(raw), ...syncChecks(raw), ...templateChecks(raw)];
 }
 
 export function validateListing(raw: unknown): Failure[] {

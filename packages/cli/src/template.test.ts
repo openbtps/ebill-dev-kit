@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { initApp } from "./init.ts";
-import { validateApp } from "./manifest.ts";
+import { validateApp, validateAppManifest } from "./manifest.ts";
 import { TEMPLATE_FILE, contrast, validateTemplate } from "./template.ts";
 
 type Doc = Record<string, unknown>;
@@ -76,4 +76,19 @@ test("init --template makes a template app that validates, and a template.json b
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test("a template asks for nothing: scopes, webhooks or browser sync are refused, as eBill refuses them", () => {
+  const manifest = {
+    app: { client_id: "app_000000000000000000000000", handle: "kauri", kind: "template", version: "1.0.0" },
+    auth: { redirect_urls: ["https://example.com/auth/callback"] },
+    access: { scopes: ["documents:read"] },
+    webhooks: { api_version: "2026-12", url: "https://example.com/webhooks", topics: ["app.uninstalled"] },
+    pricing: { model: "free" },
+  };
+  assert.deepEqual(
+    validateAppManifest(manifest).map((failure) => `${failure.check} ${failure.path}`),
+    ["template-access ebill.app.toml:access.scopes", "template-access ebill.app.toml:webhooks.url", "template-access ebill.app.toml:webhooks.topics"],
+  );
+  assert.deepEqual(validateAppManifest({ ...manifest, access: { scopes: [] }, webhooks: undefined }), []);
 });

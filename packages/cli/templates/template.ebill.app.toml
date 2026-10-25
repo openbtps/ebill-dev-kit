@@ -1,0 +1,26 @@
+# ebill.app.toml: how your template installs in eBillAddress. Check it with `ebill app validate`.
+# Contract: https://github.com/openbtps/ebill-dev-kit/blob/main/CONTRACT.md
+#
+# A template is a document layout, in template.json. It reads nothing, runs nothing and is sent nothing, so it asks
+# for no scopes and has no webhooks, settings or browser sync: eBillAddress refuses a template that does.
+
+[app]
+# Issued when you register the template. Replace this placeholder with yours.
+client_id = "app_000000000000000000000000"
+# Its permanent name in URLs: 3 to 50 lowercase letters, digits or hyphens.
+handle = "{{handle}}"
+kind = "template"
+# The version you deploy next: x.y.z, no leading zeros, no pre-release part.
+version = "1.0.0"
+
+[auth]
+# Required of every app. A template has no server, so nothing is sent here: any https address of yours will do.
+redirect_urls = ["https://example.com/auth/callback"]
+
+[access]
+# Always empty for a template.
+scopes = []
+
+[pricing]
+# "free" or "one_time".
+model = "free"

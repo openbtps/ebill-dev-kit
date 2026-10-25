@@ -8,6 +8,7 @@ export const INIT_FILES = [APP_FILE, LISTING_FILE, "server.ts", "README.md"] as 
 export const TEMPLATE_INIT_FILES = [APP_FILE, LISTING_FILE, TEMPLATE_FILE, "README.md"] as const;
 
 const TEMPLATES = new URL("../templates/", import.meta.url);
+const TEMPLATE_APP_FILE = "template.ebill.app.toml";
 const HANDLE = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
 
 export class InitConflictError extends Error {
@@ -69,7 +70,9 @@ export async function initApp(dir: string, options: InitOptions = {}): Promise<{
   await mkdir(target, { recursive: true });
   const values: Record<string, string> = { handle, name: displayName(handle), kind: options.template === true ? "template" : "integration" };
   for (const file of files) {
-    const template = await readFile(new URL(file, TEMPLATES), "utf8");
+    // A template's manifest asks for nothing (template.ebill.app.toml); an integration's starts with an example of each.
+    const source = options.template === true && file === APP_FILE ? TEMPLATE_APP_FILE : file;
+    const template = await readFile(new URL(source, TEMPLATES), "utf8");
     const content = template.replace(/\{\{(\w+)\}\}/g, (match, key: string) => values[key] ?? match);
     await writeFile(join(target, file), content, { flag: "wx" });
   }

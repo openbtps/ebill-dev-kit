@@ -110,6 +110,11 @@ export const CHECKS = {
 
   // template.json.
   "template-kind": { where: "both", what: "A `template.json` beside an integration.", fix: 'Remove it, or make the app `kind = "template"`.' },
+  "template-access": {
+    where: "both",
+    what: "A template asks for scopes, webhooks or browser sync. It reads nothing and is sent nothing.",
+    fix: "Empty `[access] scopes`, remove `[webhooks]`'s url and topics, and set `[sync] browser = false` or remove `[sync]`.",
+  },
   "template-size": { where: "both", what: "`template.json` is over 16 KB.", fix: "Shorten its labels and text." },
   "template-value": {
     where: "both",
