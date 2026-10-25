@@ -11,7 +11,7 @@ Tools for building apps and templates for the eBillAddress Marketplace.
 
 Two finished examples, checked in CI like the packages:
 
-- [`examples/hello-invoice`](examples/hello-invoice): an integration that sends an invoice through the API and hears it was delivered.
+- [`examples/hello-invoice`](examples/hello-invoice): an integration that hears when an invoice arrives and reads it, end to end in your sandbox.
 - [`examples/harbour-template`](examples/harbour-template): a template for invoices and receipts.
 
 Status: version 0.1, an early preview. The packages are not on npm yet.

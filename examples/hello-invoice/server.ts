@@ -1,8 +1,5 @@
-// hello-invoice: the finished code of the "first app" tutorial. Install it in your sandbox, open http://localhost:3000,
-// send a hello invoice, and watch its delivery arrive as a webhook. Run with: node server.ts (Node 22.18 or later).
-//
-// This page has no sign-in of its own: anyone who can reach it can send from the organisation that installed the app.
-// Run it on your own machine only. A real app signs its users in and links each to the installation they own.
+// hello-invoice: the finished code of the "first app" tutorial. Install it in your sandbox, add a sample invoice in the
+// developer portal, and watch this server read it when it arrives. Run with: node server.ts (Node 22.18 or later).
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import {
   EbillApiError,
@@ -14,7 +11,7 @@ import {
   type TokenSet,
   type WebhookEvent,
 } from "@ebilladdress/app-sdk";
-import { sendHello } from "./hello.ts";
+import { helloTo } from "./hello.ts";
 
 function env(name: string): string {
   const value = process.env[name];
@@ -32,23 +29,17 @@ const config = {
   redirectUrl: env("EBILL_REDIRECT_URL"),
 };
 
-// In memory, so the example runs as it is. A real app keeps tokens in a database, encrypted, by installation.
-let installed: { tokens: TokenSet; organisation: string } | undefined;
+// In memory, so the example runs as it is. A real app keeps tokens in a database, encrypted, by installation, and
+// refreshes them (refreshToken) before they expire.
+const installations = new Map<string, TokenSet>();
+// eBill retries a delivery with the same event id, which is signed: remember the ids you have handled, in a real app in
+// a database with a unique constraint, so a retry is not processed twice.
 const handledEvents = new Set<string>();
-const MAX_FORM_BYTES = 4096;
 
-const escape = (text: string): string =>
-  text.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
-
-function readBody(req: IncomingMessage, limit = Number.POSITIVE_INFINITY): Promise<Buffer> {
+function readBody(req: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    let size = 0;
-    req.on("data", (chunk: Buffer) => {
-      size += chunk.length;
-      if (size > limit) req.destroy(new Error("Too large."));
-      else chunks.push(chunk);
-    });
+    req.on("data", (chunk: Buffer) => chunks.push(chunk));
     req.on("end", () => {
       resolve(Buffer.concat(chunks));
     });
@@ -56,23 +47,13 @@ function readBody(req: IncomingMessage, limit = Number.POSITIVE_INFINITY): Promi
   });
 }
 
-function send(res: ServerResponse, status: number, body: string, type = "text/plain; charset=utf-8"): void {
-  res.writeHead(status, { "content-type": type }).end(body);
-}
-
-function page(res: ServerResponse, message = ""): void {
-  const body = installed
-    ? `<p>Installed for <strong>${escape(installed.organisation)}</strong>.</p>
-       <form method="post" action="/hello">
-         <p><label>From (one of your addresses) <input name="from" required></label></p>
-         <p><label>To <input name="to" required></label></p>
-         <p><button>Send a hello invoice</button></p>
-       </form>`
-    : "<p>Not installed yet. Install the app from your sandbox: <code>ebill app dev</code> prints the link.</p>";
-  send(res, 200, `<!doctype html><meta charset="utf-8"><title>hello-invoice</title><h1>hello-invoice</h1>${message}${body}`, "text/html; charset=utf-8");
+function send(res: ServerResponse, status: number, body: string): void {
+  res.writeHead(status, { "content-type": "text/plain; charset=utf-8" }).end(body);
 }
 
 async function handleCallback(url: URL, res: ServerResponse): Promise<void> {
+  // eBill also sends `state`. If your app started the install itself, check it matches the value you kept in this
+  // browser's session (CONTRACT.md, "Starting the install from your app").
   const code = url.searchParams.get("code");
   if (!code) {
     send(res, 400, "Missing code.");
@@ -86,9 +67,9 @@ async function handleCallback(url: URL, res: ServerResponse): Promise<void> {
       clientSecret: config.clientSecret,
       baseUrl: config.baseUrl,
     });
+    installations.set(tokens.installationId, tokens);
     const installation = await new EbillClient({ accessToken: tokens.accessToken, baseUrl: config.baseUrl }).getInstallation();
-    installed = { tokens, organisation: installation.organisation.name };
-    res.writeHead(303, { location: "/" }).end();
+    send(res, 200, `Installed for ${installation.organisation.name}. Add a sample invoice in the developer portal, then watch this server's log.`);
   } catch (error) {
     const reference = error instanceof EbillApiError && error.reference ? ` Reference: ${error.reference}` : "";
     console.error("Install failed", error);
@@ -96,26 +77,20 @@ async function handleCallback(url: URL, res: ServerResponse): Promise<void> {
   }
 }
 
-async function handleHello(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  // Only this page's own form: another site's page must not send invoices through a browser that has this one open.
-  if (req.headers.origin !== `http://localhost:${String(config.port)}`) {
-    send(res, 403, "Send from this app's own page.");
+async function onEvent(event: WebhookEvent): Promise<void> {
+  if (event.topic === "app.uninstalled") {
+    // Delete what you kept for this organisation within 30 days.
+    installations.delete(event.installationId);
     return;
   }
-  if (!installed) {
-    page(res);
+  if (event.topic !== "document.received") return;
+  const tokens = installations.get(event.installationId);
+  if (!tokens) {
+    console.log(`An invoice arrived for an installation this server has no tokens for: ${event.installationId}`);
     return;
   }
-  const form = new URLSearchParams((await readBody(req, MAX_FORM_BYTES)).toString("utf8"));
-  const [from, to] = [form.get("from")?.trim() ?? "", form.get("to")?.trim() ?? ""];
-  try {
-    const client = new EbillClient({ accessToken: installed.tokens.accessToken, baseUrl: config.baseUrl });
-    const sent = await sendHello(client, { from, to });
-    page(res, `<p>Sent: <code>${escape(sent.id)}</code>. Its delivery arrives as a webhook: watch this server's log.</p>`);
-  } catch (error) {
-    const said = error instanceof EbillApiError ? `${error.message}${error.reference ? ` (reference ${error.reference})` : ""}` : "It did not send.";
-    page(res, `<p role="alert">${escape(said)}</p>`);
-  }
+  const client = new EbillClient({ accessToken: tokens.accessToken, baseUrl: config.baseUrl });
+  console.log(await helloTo(client, event.data.documentId));
 }
 
 async function handleWebhook(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -135,19 +110,18 @@ async function handleWebhook(req: IncomingMessage, res: ServerResponse): Promise
     }
     throw error;
   }
-  if (!handledEvents.has(event.id)) {
-    if (event.topic === "document.delivered") console.log(`Delivered: ${event.data.documentId} (${event.data.kind}) at ${event.data.at}`);
-    else if (event.topic === "app.uninstalled") installed = undefined;
-    handledEvents.add(event.id);
-  }
+  // Answer at once; do the work after. A slow answer is a failed delivery, and eBill tries again.
   send(res, 200, "OK");
+  if (handledEvents.has(event.id)) return;
+  handledEvents.add(event.id);
+  onEvent(event).catch((error: unknown) => {
+    console.error(`Handling ${event.topic} ${event.id} failed`, error);
+  });
 }
 
 async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const url = new URL(req.url ?? "/", "http://localhost");
-  if (req.method === "GET" && url.pathname === "/") page(res);
-  else if (req.method === "GET" && url.pathname === "/auth/callback") await handleCallback(url, res);
-  else if (req.method === "POST" && url.pathname === "/hello") await handleHello(req, res);
+  if (req.method === "GET" && url.pathname === "/auth/callback") await handleCallback(url, res);
   else if (req.method === "POST" && url.pathname === "/webhooks") await handleWebhook(req, res);
   else send(res, 404, "Not found.");
 }

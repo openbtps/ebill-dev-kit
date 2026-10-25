@@ -1,4 +1,4 @@
-# hello-invoice: send an invoice through eBillAddress, and hear that it was delivered.
+# hello-invoice: hear when an invoice arrives, and read it.
 # Check it with `ebill app validate`. Contract: https://github.com/openbtps/ebill-dev-kit/blob/main/CONTRACT.md
 
 [app]
@@ -13,14 +13,14 @@ version = "1.0.0"
 redirect_urls = ["https://localhost:3000/auth/callback"]
 
 [access]
-# Write a draft, send it, and hear what happened to it: the fewest scopes that do that.
-scopes = ["drafts:write", "documents:send", "documents:read"]
+# Read the documents the organisation receives: the one scope that does that.
+scopes = ["documents:received:read"]
 
 [webhooks]
 api_version = "2026-12"
 # eBill's webhooks need an https address it can reach: during `ebill app dev`, a tunnel to localhost:3000.
 url = "https://example.com/webhooks"
-topics = ["document.delivered", "app.uninstalled"]
+topics = ["document.received", "app.uninstalled"]
 
 [sync]
 browser = false

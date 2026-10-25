@@ -1,14 +1,14 @@
 # listing.toml: hello-invoice's page in the eBillAddress Marketplace. It is an example: list your own app, not this one.
 
 name = "Hello Invoice"
-tagline = "Send your first invoice through the eBillAddress API"
+tagline = "Hear when an invoice arrives, and read it"
 category = "billing"
 keywords = ["invoices", "example"]
 description = """
-An example app. It sends a one-line invoice from your organisation to any eBillAddress address, and logs when it
-is delivered.
+An example app. When your organisation receives an invoice, it reads it through the eBillAddress API and says hello to it:
+its number, who sent it and the amount.
 
-**What it needs:** to write a draft, send it, and see what happened to it.
+**What it needs:** to see the documents you receive.
 """
 release_notes = "First release."
 
