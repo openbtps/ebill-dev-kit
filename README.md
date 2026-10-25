@@ -2,15 +2,19 @@
 
 Tools for building apps and templates for the eBillAddress Marketplace.
 
-| Package                                     | What it is                                                                            |
-| ------------------------------------------- | ------------------------------------------------------------------------------------- |
-| [`@ebilladdress/cli`](packages/cli)         | The `ebill` command: create an app, check its files, and (soon) deploy and release it |
-| [`@ebilladdress/app-sdk`](packages/app-sdk) | A small library for your app's server: install flow, API calls, webhook verification  |
+| Package                                     | What it is                                                                                      |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| [`@ebilladdress/cli`](packages/cli)         | The `ebill` command: create an app, check its files, try it in your sandbox, deploy and release |
+| [`@ebilladdress/app-sdk`](packages/app-sdk) | A small library for your app's server: install flow, API calls, webhook verification            |
 
 [CONTRACT.md](CONTRACT.md) describes everything between an app and eBill: the install flow, the API, webhooks, scopes and the two app files.
 
-Status: version 0.1, an early preview. The packages are not on npm yet. Commands that need the eBill developer API (`login`, `dev`, `deploy`,
-`versions`, `release`, `rollback`, `status`) say so and exit with code 2 until that API is available.
+Two finished examples, checked in CI like the packages:
+
+- [`examples/hello-invoice`](examples/hello-invoice): an integration that sends an invoice through the API and hears it was delivered.
+- [`examples/harbour-template`](examples/harbour-template): a template for invoices and receipts.
+
+Status: version 0.1, an early preview. The packages are not on npm yet.
 
 ## Quick start
 

@@ -1,0 +1,21 @@
+# listing.toml: harbour-template's page in the eBillAddress Marketplace. It is an example: list your own, not this one.
+
+name = "Harbour"
+tagline = "A calm, blue invoice and receipt layout"
+category = "documents"
+keywords = ["invoice", "receipt", "template", "example"]
+description = """
+An example template. Your logo on the right, the parties first, ruled lines and a boxed total.
+
+It changes only how your invoices and receipts look: never an amount, who is paid, or how.
+"""
+release_notes = "First release."
+
+icon_url = "https://example.com/icon.png"
+cover_url = "https://example.com/cover.png"
+screenshot_urls = []
+
+support_url = "https://example.com/support"
+privacy_policy_url = "https://example.com/privacy"
+terms_url = "https://example.com/terms"
+developer_name = "eBillAddress examples"

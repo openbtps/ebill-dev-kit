@@ -1,0 +1,19 @@
+{
+  "format": 1,
+  "kinds": ["invoice", "receipt"],
+  "page": {
+    "font": "geist",
+    "size": "normal",
+    "density": "comfortable",
+    "background": "#ffffff",
+    "text": "#102a43",
+    "muted": "#486581",
+    "accent": "#1f5f8b"
+  },
+  "logo": { "position": "top-right", "size": "medium" },
+  "sections": ["header", "parties", "details", "lines", "totals", "payment", "notes", "terms", "footer"],
+  "labels": { "title": "Tax invoice", "to": "Billed to", "amountDue": "Total due" },
+  "lines": { "style": "plain", "header": "plain" },
+  "totals": { "style": "boxed" },
+  "text": { "terms": "Payment within fourteen days of the invoice date.", "footer": "Thank you." }
+}

@@ -27,6 +27,22 @@ importers:
         specifier: ^8.72.0
         version: 8.72.0(eslint@10.13.0)(typescript@6.0.3)
 
+  examples/harbour-template:
+    devDependencies:
+      '@ebilladdress/cli':
+        specifier: workspace:^
+        version: link:../../packages/cli
+
+  examples/hello-invoice:
+    dependencies:
+      '@ebilladdress/app-sdk':
+        specifier: workspace:^
+        version: link:../../packages/app-sdk
+    devDependencies:
+      '@ebilladdress/cli':
+        specifier: workspace:^
+        version: link:../../packages/cli
+
   packages/app-sdk:
     devDependencies:
       openapi-typescript:
