@@ -70,8 +70,8 @@ Every call sends `Authorization: Bearer <access_token>`. Request and response bo
 | `GET /v1/installation`          | `{ id, organisation: { id, name }, app: { handle, version }, scopes: string[], installedAt }` |
 | `GET /v1/installation/settings` | `{ values: Record<string, unknown>, updatedAt }`, keyed by the setting keys you declared      |
 
-Drafts, sending, documents and the rest of `/v1/` will be described by an OpenAPI document. Until then, the SDK's generic `request` reaches any
-`/v1/` path.
+Drafts, sending, documents, files, payments and contacts are described by eBill's OpenAPI document, of which the SDK keeps a copy
+(`packages/app-sdk/openapi.json`) and from which its types are generated. The SDK's generic `request` reaches any `/v1/` path.
 
 Times are ISO 8601 strings.
 
@@ -183,8 +183,8 @@ Ask for the fewest you need. The user sees these labels when approving the insta
 | `[access] scopes`                  | known scopes only, no repeats                                                                             |
 | `[webhooks]` (optional)            | `api_version` (`2026-12`), `url` (https), `topics` (known, no repeats, each with its scope in `[access]`) |
 | `[[settings.sections]]` (optional) | `title` (1 to 60 characters) and `fields`                                                                 |
-| `[sync]` (optional)                | `browser`, true or false. Browser sync is not documented yet; keep it false.                              |
-| `[pricing] model`                  | `free` or `one_time`                                                                                      |
+| `[sync]` (optional)                | `browser`, true or false, and `public_key` when true: see the SDK's README, "Browser sync"                |
+| `[pricing] model`                  | `free` or `one_time`: bought once, at the price set in the developer portal, A$1 to A$10,000              |
 
 Each settings field has `key` (`^[a-z][a-z0-9_]{0,39}$`, unique across all sections), `type`, `label` (1 to 60 characters), and optionally `help`
 (up to 200), `required` and `default`. Types: `text`, `number` (may have `min` and `max`), `boolean`, `select` (needs `options`, a list of

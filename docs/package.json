@@ -1,0 +1,42 @@
+{
+  "name": "@ebilladdress/docs",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The eBillAddress developer documentation: developers.ebilladdress.com.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "reference": "node --conditions=@ebilladdress/source scripts/generate-reference.mts && docusaurus gen-api-docs all",
+    "start": "node --conditions=@ebilladdress/source scripts/generate-reference.mts && docusaurus gen-api-docs all && docusaurus start",
+    "build": "node --conditions=@ebilladdress/source scripts/generate-reference.mts && docusaurus gen-api-docs all && docusaurus build",
+    "serve": "docusaurus serve",
+    "clear": "docusaurus clear && docusaurus clean-api-docs all",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@ebilladdress/app-sdk": "workspace:^",
+    "@ebilladdress/cli": "workspace:^",
+    "@docusaurus/core": "3.10.2",
+    "@docusaurus/faster": "3.10.2",
+    "@docusaurus/preset-classic": "3.10.2",
+    "@mdx-js/react": "^3.1.0",
+    "clsx": "^2.1.1",
+    "docusaurus-plugin-openapi-docs": "5.2.0",
+    "docusaurus-plugin-sass": "^0.2.6",
+    "docusaurus-plugin-typedoc": "1.4.3",
+    "docusaurus-theme-openapi-docs": "5.2.0",
+    "prism-react-renderer": "^2.4.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "sass": "^1.89.0",
+    "typedoc": "0.28.20",
+    "typedoc-plugin-markdown": "4.14.1"
+  },
+  "devDependencies": {
+    "@docusaurus/module-type-aliases": "3.10.2",
+    "@docusaurus/types": "3.10.2",
+    "typescript": "~6.0.3"
+  }
+}

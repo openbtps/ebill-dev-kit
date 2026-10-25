@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.base.json",
+  // The site's config and sidebars are compiled by Docusaurus's bundler, not run by Node: bundler resolution. The package is
+  // not "type": "module", which breaks Docusaurus's server bundle; its one Node script is .mts.
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "customConditions": ["@ebilladdress/source"]
+  },
+  "include": ["docusaurus.config.ts", "sidebars.ts", "scripts"]
+}
