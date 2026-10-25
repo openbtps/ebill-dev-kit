@@ -1,0 +1,22 @@
+/* eBillAddress developers: the primary is eBillAddress's own action colour (#2a5bd7, 5.9:1 on white); its hover the app's
+   hover (#1e4fc2). In dark mode, a lighter blue that reads on the dark background. */
+:root {
+  --ifm-color-primary: #2a5bd7;
+  --ifm-color-primary-dark: #1e4fc2;
+  --ifm-color-primary-darker: #1c4ab7;
+  --ifm-color-primary-darkest: #173d97;
+  --ifm-color-primary-light: #4069dc;
+  --ifm-color-primary-lighter: #4b72de;
+  --ifm-color-primary-lightest: #6c8be4;
+  --ifm-code-font-size: 95%;
+}
+
+[data-theme="dark"] {
+  --ifm-color-primary: #7c9cf0;
+  --ifm-color-primary-dark: #6489ed;
+  --ifm-color-primary-darker: #5880eb;
+  --ifm-color-primary-darkest: #3364e6;
+  --ifm-color-primary-light: #94aff3;
+  --ifm-color-primary-lighter: #a0b8f5;
+  --ifm-color-primary-lightest: #c4d3f8;
+}

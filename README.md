@@ -38,6 +38,9 @@ pnpm build
 
 Tests use `node:test` and run straight from the TypeScript sources.
 
+The developer documentation (developers.ebilladdress.com) is in [`docs/`](docs). `pnpm --filter @ebilladdress/docs start` serves it locally.
+Its reference pages are generated from the code each build, and `pnpm build` fails on a broken link.
+
 ## Licence
 
 [MIT](LICENSE). The licence covers this code only: it grants no right to the eBillAddress name or marks, and using the

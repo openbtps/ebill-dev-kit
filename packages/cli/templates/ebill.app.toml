@@ -34,7 +34,7 @@ api_version = "2026-12"
 # eBill POSTs events here, signed with your webhook secret. https only.
 url = "https://example.com/webhooks"
 # Each topic needs its scope above: document.sent, document.delivered, document.failed (documents:read);
-# document.received (documents:received:read); payment.proposed, payment.accepted, payment.rejected (payments:read);
+# document.received (documents:received:read); payment.proposed, payment.answered (payments:read);
 # app.installed, app.uninstalled, app.settings.updated (no scope).
 topics = ["document.delivered", "app.uninstalled"]
 

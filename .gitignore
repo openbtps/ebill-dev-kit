@@ -6,3 +6,9 @@ dist/
 .env
 .env.*
 coverage/
+# The docs site's build, and its reference pages, generated from the code each build.
+docs/build/
+docs/.docusaurus/
+docs/docs/reference/api/
+docs/docs/reference/sdk/
+docs/docs/reference/generated/

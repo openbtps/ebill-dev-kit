@@ -4,3 +4,9 @@ pnpm-lock.yaml
 # Copied from eBill, and generated from it: pnpm --filter @ebilladdress/app-sdk generate.
 packages/app-sdk/openapi.json
 packages/app-sdk/src/api-types.ts
+# The docs site's build, and its reference pages, generated from the code each build.
+docs/build/
+docs/.docusaurus/
+docs/docs/reference/api/
+docs/docs/reference/sdk/
+docs/docs/reference/generated/
