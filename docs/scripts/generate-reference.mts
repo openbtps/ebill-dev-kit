@@ -3,7 +3,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { SCOPES, TOPICS } from "@ebilladdress/app-sdk";
-import { run } from "@ebilladdress/cli";
+import { CHECKS, run } from "@ebilladdress/cli";
 
 const OUT = fileURLToPath(new URL("../docs/reference/generated/", import.meta.url));
 // An MDX comment: MDX refuses an HTML one.
@@ -49,6 +49,30 @@ function topicsPage(): string {
   ].join("\n");
 }
 
+const WHERE = { cli: "your computer", both: "your computer and eBill", ebill: "eBill, at deploy" } as const;
+
+/** Every automatic check, from the CLI's catalogue (packages/cli/src/checks.ts), with what it means and the fix. */
+function checksPage(): string {
+  const rows = Object.entries(CHECKS).map(([name, info]) => `| \`${name}\` | ${WHERE[info.where]} | ${info.what} | ${info.fix} |`);
+  return [
+    "---",
+    "title: The automatic checks",
+    "---",
+    "",
+    NOTICE,
+    "",
+    "# The automatic checks",
+    "",
+    "Each problem `ebill app validate` or a push reports names its check, where it is, and why: `{ check, path, reason }`. `ebill app",
+    "validate` runs the checks your computer can; eBill runs the same ones again when you deploy, and the ones that need the network.",
+    "",
+    "| Check | Run on | What it means | How to fix it |",
+    "| --- | --- | --- | --- |",
+    ...rows,
+    "",
+  ].join("\n");
+}
+
 async function helpOf(argv: string[]): Promise<string> {
   let out = "";
   await run([...argv, "--help"], { stdout: (text) => (out += text), stderr: (text) => (out += text), cwd: process.cwd(), env: {} });
@@ -75,3 +99,4 @@ async function cliPage(): Promise<string> {
 await mkdir(OUT, { recursive: true });
 await writeFile(new URL("webhook-topics.md", `file://${OUT}`), topicsPage());
 await writeFile(new URL("cli.md", `file://${OUT}`), await cliPage());
+await writeFile(new URL("checks.md", `file://${OUT}`), checksPage());

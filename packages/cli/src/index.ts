@@ -1,3 +1,4 @@
+export { CHECKS, type CheckInfo, type CheckName, type CheckWhere } from "./checks.ts";
 export { EXIT, run, type Io } from "./cli.ts";
 export { INIT_FILES, InitConflictError, handleFromName, initApp, type InitOptions } from "./init.ts";
 export {
