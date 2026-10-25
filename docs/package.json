@@ -17,11 +17,12 @@
     "test": "node scripts/check-samples.mts"
   },
   "dependencies": {
-    "@ebilladdress/app-sdk": "workspace:^",
-    "@ebilladdress/cli": "workspace:^",
     "@docusaurus/core": "3.10.2",
     "@docusaurus/faster": "3.10.2",
     "@docusaurus/preset-classic": "3.10.2",
+    "@easyops-cn/docusaurus-search-local": "0.55.3",
+    "@ebilladdress/app-sdk": "workspace:^",
+    "@ebilladdress/cli": "workspace:^",
     "@mdx-js/react": "^3.1.0",
     "clsx": "^2.1.1",
     "docusaurus-plugin-openapi-docs": "5.2.0",
