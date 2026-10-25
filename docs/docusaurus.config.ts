@@ -73,6 +73,7 @@ const config: Config = {
         { to: "/get-started/first-app", label: "Get started", position: "left" },
         { to: "/concepts/apps-and-templates", label: "Concepts", position: "left" },
         { to: "/build/install", label: "Build", position: "left" },
+        { to: "/publish/listing", label: "Publish", position: "left" },
         { to: "/reference", label: "Reference", position: "left" },
         { href: REPOSITORY, label: "GitHub", position: "right" },
       ],

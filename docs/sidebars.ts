@@ -1,4 +1,4 @@
-// The site's one sidebar, in the order a developer learns: start, understand, build, look up.
+// The site's one sidebar, in the order a developer learns: start, understand, build, publish, look up.
 import type { SidebarsConfig } from "@docusaurus/plugin-content-docs";
 
 const sidebars: SidebarsConfig = {
@@ -14,6 +14,11 @@ const sidebars: SidebarsConfig = {
       type: "category",
       label: "Build",
       items: ["build/install", "build/calling-the-api", "build/webhooks", "build/settings", "build/templates", "build/paid-apps", "build/secrets"],
+    },
+    {
+      type: "category",
+      label: "Publish",
+      items: ["publish/listing", "reference/generated/checks", "concepts/versions-and-review"],
     },
     {
       type: "category",
