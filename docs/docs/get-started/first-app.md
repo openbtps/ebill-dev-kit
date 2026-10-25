@@ -13,6 +13,21 @@ You need Node.js 22.18 or later, an eBillAddress organisation you are an owner o
 address that eBillAddress can reach, such as a
 [Cloudflare tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) to `localhost:3000`.
 
+:::note[Against an eBillAddress on your own computer]
+
+Until eBillAddress's developer environment opens, the tutorial runs against eBillAddress's local stack, with no tunnel. The
+stack is started from the eBillAddress source; its `docs/features/marketplace/try-it-locally.md`, "Your own app on this
+machine", shows how. Then, in the steps below:
+
+- Run the CLI and the server with `EBILL_API_URL=http://localhost:4000`, and the server with `PORT=8090` too.
+- Until the CLI and SDK are on npm, use them from your ebill-dev-kit checkout: build the CLI with
+  `pnpm --filter @ebilladdress/cli build` and run `node <checkout>/packages/cli/dist/bin.js` as `ebill`, and install the SDK
+  with `npm install <checkout>/packages/app-sdk`.
+- Use `http://localhost:8090` in place of `https://<your-tunnel>`. Plain http to `localhost` is accepted only when the CLI is
+  pointed at a local eBillAddress.
+
+:::
+
 ## 1. Install the CLI and sign in
 
 ```bash
