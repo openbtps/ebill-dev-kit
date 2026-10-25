@@ -7,7 +7,7 @@ title: Call the API
 Every call sends `Authorization: Bearer <access_token>`, to `https://api.ebilladdress.com`. Bodies are JSON and times are ISO 8601.
 The full list of routes is in the [API reference](../reference/index.md).
 
-```ts
+```ts check
 import { EbillClient } from "@ebilladdress/app-sdk";
 
 const ebill = new EbillClient({ accessToken: tokens.accessToken });

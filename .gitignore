@@ -12,3 +12,5 @@ docs/.docusaurus/
 docs/docs/reference/api/
 docs/docs/reference/sdk/
 docs/docs/reference/generated/
+# The guides' code samples, written out to be type-checked (docs/scripts/check-samples.mts).
+docs/.samples/

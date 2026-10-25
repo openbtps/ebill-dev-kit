@@ -7,7 +7,7 @@ title: Complete the install
 Installing is OAuth 2.0's authorization code flow. An owner or admin approves your app in eBillAddress; eBillAddress sends their
 browser to one of your `[auth] redirect_urls` with `?code=...&state=...`; your server trades the code for tokens.
 
-```ts
+```ts check
 import { exchangeCode } from "@ebilladdress/app-sdk";
 
 const tokens = await exchangeCode({ code, redirectUri: "https://your-host/auth/callback", clientId, clientSecret });
@@ -22,7 +22,7 @@ const tokens = await exchangeCode({ code, redirectUri: "https://your-host/auth/c
 
 An access token lasts an hour. Get a new one with the refresh token, and keep the new refresh token if the answer has one:
 
-```ts
+```ts check
 import { refreshToken } from "@ebilladdress/app-sdk";
 
 const fresh = await refreshToken({ refreshToken: tokens.refreshToken, clientId, clientSecret });

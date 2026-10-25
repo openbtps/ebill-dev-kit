@@ -17,7 +17,7 @@ An app hears only the topics in `[webhooks] topics`, and only while it holds eac
 
 Pass the body exactly as it arrived, before parsing it:
 
-```ts
+```ts check
 import { WEBHOOK_HEADERS, WebhookVerificationError, verifyWebhook } from "@ebilladdress/app-sdk";
 
 try {
