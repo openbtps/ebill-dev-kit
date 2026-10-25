@@ -1,47 +1,58 @@
-// hello-invoice, checked as `ebill app validate` checks it, and its calls to the API, against a stand-in for eBill.
+// hello-invoice, checked as `ebill app validate` checks it, and its reading of an invoice, against a stand-in for eBill.
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
-import { EbillClient } from "@ebilladdress/app-sdk";
+import { EbillClient, type Document } from "@ebilladdress/app-sdk";
 import { validateApp } from "@ebilladdress/cli";
-import { helloDraft, sendHello } from "./hello.ts";
+import { amountOf, helloLine, helloTo } from "./hello.ts";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
+
+const SAMPLE: Document = {
+  id: "doc_1",
+  kind: "invoice",
+  direction: "incoming",
+  state: "received",
+  from: "sample-biller$sandbox.invalid",
+  to: "you$sandbox.invalid",
+  encrypted: false,
+  ownKey: false,
+  number: "S-1001",
+  title: "Sample invoice",
+  issuedAt: "2027-01-02T00:00:00Z",
+  dueAt: null,
+  currency: "AUD",
+  totalMinor: 4950,
+  references: [],
+  files: [],
+  content: null,
+  createdAt: "2027-01-02T00:00:00Z",
+  queuedAt: null,
+  deliveredAt: null,
+  receivedAt: "2027-01-02T00:00:00Z",
+  failedAt: null,
+  failureCode: null,
+  retrying: false,
+  sample: true,
+};
 
 test("its manifest and listing pass every check `ebill app validate` makes", async () => {
   assert.deepEqual(await validateApp(HERE), []);
 });
 
-test("the draft: one line of A$1.00, no tax, from and to the addresses given, due in 14 days", () => {
-  const draft = helloDraft({ from: "acme$ebilladdress.com", to: "bob$ebilladdress.com", now: new Date("2027-01-02T03:04:05Z") });
-  assert.equal(draft.kind, "invoice");
-  assert.deepEqual(
-    [draft.fromAddress, draft.toAddress, draft.currency, draft.documentNumber],
-    ["acme$ebilladdress.com", "bob$ebilladdress.com", "AUD", "HELLO-20270102030405"],
-  );
-  assert.equal(draft.dueAt, "2027-01-16T03:04:05.000Z");
-  assert.deepEqual(
-    draft.lineItems.map((line) => [line.unitPriceMinor, line.lineTotalMinor, line.taxAmountMinor, line.taxCategory]),
-    [[100, 100, 0, "none"]],
-  );
+test("it says hello to an invoice by its number, sender and amount, and to one it cannot open by its sender alone", () => {
+  assert.equal(helloLine(SAMPLE), "Hello, invoice S-1001 from sample-biller$sandbox.invalid for A$49.50 (a sample).");
+  assert.match(helloLine({ ...SAMPLE, ownKey: true, sample: false }), /^Hello, invoice from sample-biller\$sandbox\.invalid: kept with its owner's own key/);
+  assert.deepEqual([amountOf({ currency: "NZD", totalMinor: 100 }), amountOf({ currency: null, totalMinor: null })], ["1.00 NZD", undefined]);
 });
 
-test("it writes the draft, then sends it once, keyed by the draft's id", async () => {
-  const calls: { url: string; method: string; key: string | null }[] = [];
+test("it reads the document the webhook names, and nothing else", async () => {
+  const calls: string[] = [];
   const fetch: typeof globalThis.fetch = (input, init) => {
-    const url = input instanceof Request ? input.url : String(input);
-    calls.push({ url, method: init?.method ?? "GET", key: new Headers(init?.headers).get("idempotency-key") });
-    const body = url.endsWith("/send") ? { id: "doc_1", state: "queued" } : { id: "doc_1", state: "draft" };
-    return Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } }));
+    calls.push(`${init?.method ?? "GET"} ${input instanceof Request ? input.url : String(input)}`);
+    return Promise.resolve(new Response(JSON.stringify(SAMPLE), { status: 200, headers: { "content-type": "application/json" } }));
   };
-  const client = new EbillClient({ accessToken: "token", baseUrl: "https://api.test", fetch });
-  const sent = await sendHello(client, { from: "acme$ebilladdress.com", to: "bob$ebilladdress.com" });
-  assert.equal(sent.id, "doc_1");
-  assert.deepEqual(
-    calls.map((call) => [call.method, call.url, call.key]),
-    [
-      ["POST", "https://api.test/v1/drafts", null],
-      ["POST", "https://api.test/v1/documents/doc_1/send", "hello-doc_1"],
-    ],
-  );
+  const said = await helloTo(new EbillClient({ accessToken: "token", baseUrl: "https://api.test", fetch }), "doc_1");
+  assert.match(said, /S-1001/);
+  assert.deepEqual(calls, ["GET https://api.test/v1/documents/doc_1"]);
 });

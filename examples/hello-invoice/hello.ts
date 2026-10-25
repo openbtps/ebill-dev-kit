@@ -1,38 +1,25 @@
-// What hello-invoice does with eBillAddress's API, kept apart from its server so it can be tested without one: write a
-// one-line invoice from the organisation that installed the app to an address it is given, and send it.
-import type { Document, DraftRequest, EbillClient } from "@ebilladdress/app-sdk";
+// What hello-invoice does with eBillAddress's API, kept apart from its server so it can be tested without one: when an
+// invoice arrives, read it and say hello to it. In your sandbox, the invoices that arrive are the samples you add in the
+// developer portal (each has `sample: true`).
+import type { Document, EbillClient } from "@ebilladdress/app-sdk";
 
-export interface HelloInvoice {
-  /** One of the organisation's own addresses, which it sends from. */
-  from: string;
-  /** Who receives it: any eBillAddress address. */
-  to: string;
-  /** When it is dated; now when left out. */
-  now?: Date;
+/** The amount as a person reads it: A$49.00. Undefined for a document with none (a letter, or one kept with its own key). */
+export function amountOf(document: Pick<Document, "currency" | "totalMinor">): string | undefined {
+  if (document.totalMinor === null || document.currency === null) return undefined;
+  const whole = (Math.abs(document.totalMinor) / 100).toFixed(2);
+  const sign = document.totalMinor < 0 ? "-" : "";
+  return document.currency === "AUD" ? `${sign}A$${whole}` : `${sign}${whole} ${document.currency}`;
 }
 
-/** The draft: one line, A$1.00, no tax, due in 14 days. The invoice number is the date and time, so each is new. */
-export function helloDraft({ from, to, now = new Date() }: HelloInvoice): DraftRequest {
-  const due = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
-  return {
-    kind: "invoice",
-    currency: "AUD",
-    documentNumber: `HELLO-${now.toISOString().slice(0, 19).replace(/\D/g, "")}`,
-    title: "Hello from hello-invoice",
-    fromAddress: from,
-    toAddress: to,
-    issuedAt: now.toISOString(),
-    dueAt: due.toISOString(),
-    description: "Your first invoice sent through the eBillAddress API.",
-    lineItems: [{ description: "Hello", quantity: "1", unitPriceMinor: 100, lineTotalMinor: 100, taxAmountMinor: 0, taxCategory: "none" }],
-  };
+/** The line hello-invoice prints for a document that arrived. */
+export function helloLine(document: Document): string {
+  if (document.ownKey) return `Hello, ${document.kind} from ${document.from}: kept with its owner's own key, so eBill cannot open it for an app.`;
+  const amount = amountOf(document);
+  const sample = document.sample ? " (a sample)" : "";
+  return `Hello, ${document.kind} ${document.number} from ${document.from}${amount ? ` for ${amount}` : ""}${sample}.`;
 }
 
-/**
- * Writes the draft and sends it. The idempotency key is the draft's own id, so sending again after a lost answer sends
- * it once: eBill answers a retry with the same key as it answered the first.
- */
-export async function sendHello(client: EbillClient, invoice: HelloInvoice): Promise<Document> {
-  const draft = await client.createDraft(helloDraft(invoice));
-  return client.sendDocument(draft.id, { idempotencyKey: `hello-${draft.id}` });
+/** Reads the document a document.received webhook names, and says hello to it. */
+export async function helloTo(client: EbillClient, documentId: string): Promise<string> {
+  return helloLine(await client.getDocument(documentId));
 }
