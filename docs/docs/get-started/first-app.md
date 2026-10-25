@@ -35,8 +35,12 @@ In eBillAddress, open **Developer**:
 ```bash
 ebill app init hello-invoice
 cd hello-invoice
+npm init -y
+npm pkg set type=module
 npm install @ebilladdress/app-sdk
 ```
+
+`type=module` lets Node run `server.ts` as the ES module it is.
 
 In `ebill.app.toml`, put your client id, your tunnel's address, and the one scope the app needs:
 
