@@ -1,0 +1,18 @@
+{
+  "name": "@ebilladdress/example-harbour-template",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An example eBillAddress Marketplace template: an invoice and receipt layout.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --conditions=@ebilladdress/source --test \"*.test.ts\""
+  },
+  "devDependencies": {
+    "@ebilladdress/cli": "workspace:^"
+  }
+}

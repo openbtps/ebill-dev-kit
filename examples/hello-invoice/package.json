@@ -1,0 +1,22 @@
+{
+  "name": "@ebilladdress/example-hello-invoice",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An example eBillAddress Marketplace app: send an invoice through the API and hear it was delivered.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "start": "node server.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --conditions=@ebilladdress/source --test \"*.test.ts\""
+  },
+  "dependencies": {
+    "@ebilladdress/app-sdk": "workspace:^"
+  },
+  "devDependencies": {
+    "@ebilladdress/cli": "workspace:^"
+  }
+}

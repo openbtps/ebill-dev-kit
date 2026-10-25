@@ -1,0 +1,29 @@
+# hello-invoice: send an invoice through eBillAddress, and hear that it was delivered.
+# Check it with `ebill app validate`. Contract: https://github.com/openbtps/ebill-dev-kit/blob/main/CONTRACT.md
+
+[app]
+# Issued when you register the app in the developer portal. Replace this placeholder with yours.
+client_id = "app_000000000000000000000000"
+handle = "hello-invoice"
+kind = "integration"
+version = "1.0.0"
+
+[auth]
+# For `ebill app dev`, eBill sends the browser back here after the install. Add your deployed address before you release.
+redirect_urls = ["https://localhost:3000/auth/callback"]
+
+[access]
+# Write a draft, send it, and hear what happened to it: the fewest scopes that do that.
+scopes = ["drafts:write", "documents:send", "documents:read"]
+
+[webhooks]
+api_version = "2026-12"
+# eBill's webhooks need an https address it can reach: during `ebill app dev`, a tunnel to localhost:3000.
+url = "https://example.com/webhooks"
+topics = ["document.delivered", "app.uninstalled"]
+
+[sync]
+browser = false
+
+[pricing]
+model = "free"

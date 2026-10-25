@@ -1,0 +1,20 @@
+# harbour-template: a sample document template. A template has no server and asks for no access: eBill draws it,
+# in the sender's and the receiver's own app, from template.json. Check it with `ebill app validate`.
+
+[app]
+# Issued when you register the app in the developer portal. Replace this placeholder with yours.
+client_id = "app_000000000000000000000000"
+handle = "harbour-template"
+kind = "template"
+version = "1.0.0"
+
+[auth]
+# A template is never installed, so nothing is sent here; the section is required of every app.
+redirect_urls = ["https://example.com/auth/callback"]
+
+[access]
+# A template asks for nothing: eBill draws it from the document the reader already has.
+scopes = []
+
+[pricing]
+model = "free"
